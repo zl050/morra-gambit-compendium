@@ -20,7 +20,22 @@ const QUIZ_DESCRIPTION = 'White to move: seize the initiative with precise attac
 // Declared up here so the top-level initBoardTheme() call isn't in their TDZ.
 const BOARD_THEME_KEY = 'smg:board-theme';
 const BOARD_THEMES = ['blue', 'brown'];
-const DEFAULT_BOARD_THEME = 'blue';
+const DEFAULT_BOARD_THEME = 'brown';
+
+// Figurine notation: swap the leading piece letter of a SAN token for its chess
+// glyph (display only — exported PGN and position search keep plain SAN). Pawn
+// moves, castling, and promotion suffixes are left untouched.
+const FIGURINES = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞' };
+function figurine(san) {
+  if (san && FIGURINES[san[0]]) return FIGURINES[san[0]] + san.slice(1);
+  return san;
+}
+
+// 'w' on White's plies (odd), 'b' on Black's — drives the warm/steel coding of
+// moves in the move list.
+function sideOf(node) {
+  return node.ply % 2 === 1 ? 'w' : 'b';
+}
 
 const els = {
   chapterSelect: document.querySelector('#chapter-select'),
@@ -407,7 +422,8 @@ function renderNotationCell(node) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `notation-move${node.id === state.selectedNodeId ? ' selected' : ''}`;
-  button.textContent = node.san;
+  button.dataset.side = sideOf(node);
+  button.textContent = figurine(node.san);
   button.addEventListener('click', () => selectNode(node.id));
   cell.append(button);
   return cell;
@@ -451,6 +467,7 @@ function renderInlineMove(node, forceNumber) {
   const role = node.isMainline ? 'mainline' : 'sideline';
   const selected = node.id === state.selectedNodeId ? ' selected' : '';
   button.className = `notation-move-inline ${role}${selected}`;
+  button.dataset.side = sideOf(node);
   button.textContent = inlineLabel(node, forceNumber);
   button.addEventListener('click', () => selectNode(node.id));
   return button;
@@ -458,10 +475,11 @@ function renderInlineMove(node, forceNumber) {
 
 function inlineLabel(node, forceNumber) {
   const moveNumber = Math.ceil(node.ply / 2);
+  const move = figurine(node.san);
   if (node.ply % 2 === 1) {
-    return `${moveNumber}.${node.san}`;
+    return `${moveNumber}.${move}`;
   }
-  return forceNumber ? `${moveNumber}...${node.san}` : node.san;
+  return forceNumber ? `${moveNumber}...${move}` : move;
 }
 
 function mainlineChild(node) {
