@@ -926,6 +926,7 @@ function startQuiz() {
   els.nextMove.disabled = true;
   els.endLine.disabled = true;
   els.flipBoard.disabled = true;
+  els.toggleSearch.disabled = true;
 
   els.quizMode.querySelector('.tool-label').textContent = 'Quit quiz mode';
   els.quizMode.setAttribute('aria-expanded', 'true');
@@ -957,6 +958,7 @@ function endQuiz(message, kind) {
 
   els.chapterSelect.disabled = false;
   els.flipBoard.disabled = false;
+  els.toggleSearch.disabled = false;
 
   els.quizMode.querySelector('.tool-label').textContent = 'Quiz mode';
   els.quizMode.setAttribute('aria-expanded', 'false');
