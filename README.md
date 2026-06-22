@@ -34,11 +34,6 @@ pnpm run build
 PGN files in `data/pgn/` are the editable source of truth. Run
 `scripts/export_repertoire_json.py` to regenerate `data/repertoire.json`.
 
-- **Chapter description** comes from each PGN game's root comment — the `{...}`
-  block placed between the headers and the first move. It is required; the
-  export script raises an error if a game has no root comment.
-- **Move annotations** come from the comment on the corresponding move.
-
 ## License & attribution
 
 Licensed under the **GNU General Public License v3.0 or later**
