@@ -136,6 +136,8 @@
             <h3 class="notes-ack-title">Acknowledgements</h3>
             <p>The repertoire draws on ideas and selected lines from <em>Mayhem in the Morra</em> (2012) by Marc Esserman — with thanks to the author for the foundational work behind this opening. The lines have been modified and restructured through original analysis, rather than reproduced from the book.</p>
             <p>Coverage is not yet comprehensive and will continue to expand.</p>
+            <h3 class="notes-ack-title">Source</h3>
+            <a class="notes-ack-repo" href="https://github.com/zl050/morra-gambit-viewer" target="_blank" rel="noopener noreferrer">github.com/zl050/morra-gambit-viewer</a>
           </div>
         </section>
       </aside>
@@ -148,32 +150,34 @@
       </main>
 
       <aside id="tree-panel" class="tree-panel" aria-label="Repertoire">
-        <section class="chapter-panel" aria-labelledby="chapter-heading">
-          <h2 id="chapter-heading">Chapters</h2>
-          <select id="chapter-select" aria-label="Select chapter">
-            <option value="" hidden>Select a chapter</option>
-          </select>
-        </section>
-        <div id="tree" class="tree"></div>
+        <div class="tree-box">
+          <section class="chapter-panel" aria-labelledby="chapter-heading">
+            <h2 id="chapter-heading">Chapters</h2>
+            <select id="chapter-select" aria-label="Select chapter">
+              <option value="" hidden>Select a chapter</option>
+            </select>
+          </section>
+          <div id="tree" class="tree"></div>
+        </div>
         <div class="repertoire-controls" aria-label="Move navigation">
           <button id="start-line" type="button" aria-label="Back to start">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <rect x="4" y="5" width="2" height="14" /><path d="M18 5L8 12L18 19Z" />
+            <svg class="nav-icon nav-icon-jump" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
+              <path d="M499 40Q506 35 508 37Q512 38 512 46V466Q512 474 508 475Q506 477 499 472L296 269L293 263V466Q293 473 289 475Q285 477 280 472L77 269Q75 267 73 263V457Q73 463 68 470Q63 475 55 475H18Q10 475 5 470Q0 463 0 457V55Q0 49 5 42Q10 37 18 37H55Q63 37 68 42Q73 49 73 55V249Q74 246 77 243L280 40Q285 35 289 37Q293 39 293 46V249L296 243Z" />
             </svg>
           </button>
           <button id="prev-move" type="button" aria-label="Previous move">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M17 5L7 12L17 19Z" />
+            <svg class="nav-icon" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
+              <path d="M303 466 117 280Q107 270 107 255Q107 239 117 229L303 43Q314 32 329 32Q344 32 355 43L377 64Q387 74 387 90Q387 106 377 116L238 255L377 393Q387 404 387 419Q387 435 377 445L355 466Q344 477 329 477Q314 477 303 466Z" />
             </svg>
           </button>
           <button id="next-move" type="button" aria-label="Next move">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M7 5L17 12L7 19Z" />
+            <svg class="nav-icon" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
+              <path d="M405 255Q405 270 395 281L209 467Q199 477 183 477Q167 477 157 467L135 445Q125 435 125 419Q125 404 135 394L274 255L135 116Q125 106 125 90Q125 74 135 64L157 43Q168 32 183 32Q198 32 209 43L395 229Q405 239 405 255Z" />
             </svg>
           </button>
           <button id="end-line" type="button" aria-label="Forward to end">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M6 5L16 12L6 19Z" /><rect x="18" y="5" width="2" height="14" />
+            <svg class="nav-icon nav-icon-jump" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
+              <path d="M13 472Q6 477 4 475Q0 474 0 466V46Q0 38 4 37Q6 35 13 40L216 243L219 249V46Q219 39 223 37Q227 35 232 40L435 243Q438 246 439 249V55Q439 49 444 42Q449 37 457 37H494Q502 37 507 42Q512 49 512 55V457Q512 463 507 470Q502 475 494 475H457Q449 475 444 470Q439 463 439 457V263Q437 267 435 269L232 472Q227 477 223 475Q219 473 219 466V263L216 269Z" />
             </svg>
           </button>
         </div>

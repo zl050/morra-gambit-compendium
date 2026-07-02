@@ -15,8 +15,8 @@ Coverage is not yet comprehensive and will continue to expand.
 
 ## Development
 
-This repo uses [pnpm](https://pnpm.io/) (a `pnpm-lock.yaml` is committed). The
-repertoire data is generated from PGN files with a small Python script.
+Requires [pnpm](https://pnpm.io/) and Python. PGN files in `data/pgn/` are the
+editable source of truth; the export script regenerates `data/repertoire.json`.
 
 ```powershell
 python -m pip install python-chess
@@ -25,24 +25,10 @@ python scripts/export_repertoire_json.py
 pnpm run dev
 ```
 
-Build static output for GitHub Pages:
-
-```powershell
-pnpm run build
-```
-
-## Data
-
-PGN files in `data/pgn/` are the editable source of truth. Run
-`scripts/export_repertoire_json.py` to regenerate `data/repertoire.json`.
-
 ## License & attribution
 
-Licensed under the **GNU General Public License v3.0 or later**
-(GPL-3.0-or-later) — see [LICENSE](LICENSE). The board UI bundles
-[`chessground`](https://github.com/lichess-org/chessground) (GPL-3.0-or-later),
-the open-source board library from Lichess, so the distributed application is
-covered by the GPL.
-
-[`chess.js`](https://github.com/jhlywa/chess.js) is used under the BSD-2-Clause
-license.
+**GPL-3.0-or-later** — see [LICENSE](LICENSE). Bundles
+[`chessground`](https://github.com/lichess-org/chessground) (GPL-3.0-or-later)
+and [`chess.js`](https://github.com/jhlywa/chess.js) (BSD-2-Clause).
+Move-navigation icons are from the
+[lichess icon font](https://github.com/lichess-org/lila) (AGPL-3.0-or-later).
