@@ -19,10 +19,6 @@
   --notation-num-fg: #8a939c;
   --notation-move-fg: #24303a;
   --sideline-fg: #68727d;
-  --variation-bg: #f1f4f8;
-  --variation-border: #c5d2e4;
-  --variation-nested-bg: #e9edf2;
-  --variation-nested-border: #d4dbe4;
   /* Quiz feedback box (#quiz-status), keyed by data-kind. */
   --status-success-bg: #eaf6ec;
   --status-success-border: #9fc6a3;
@@ -56,10 +52,6 @@
   --notation-num-fg: #768390;
   --notation-move-fg: #adbac7;
   --sideline-fg: #768390;
-  --variation-bg: #22272e;
-  --variation-border: #3d444d;
-  --variation-nested-bg: #2a3139;
-  --variation-nested-border: #444c56;
   --panel-shadow: rgba(0, 0, 0, 0.45);
   --status-success-bg: #16201a;
   --status-success-border: #3d6b48;
@@ -326,52 +318,16 @@ select {
   height: 22px;
 }
 
+#quiz-exit-icon {
+  width: 24px;
+  height: 24px;
+}
+
 .tool-label {
   font-size: 1rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.quiz-exit-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  border: 2px solid currentColor;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.quiz-exit-icon[hidden] {
-  display: none;
-}
-
-/* One-shot pulse on the quiz-mode button when quiz mode starts.
-   Added/removed in app.js (startQuiz). */
-.tool-bar.is-emphasized {
-  animation: tool-bar-emphasis 0.5s ease-out 1;
-}
-
-@keyframes tool-bar-emphasis {
-  0% {
-    box-shadow: 0 0 0 2px var(--accent);
-  }
-  40% {
-    box-shadow: 0 0 0 5px var(--accent);
-  }
-  100% {
-    box-shadow: 0 0 0 2px var(--accent);
-  }
-}
-
-/* Persistent ring kept after the pulse settles, for as long as quiz mode is
-   active. Added in app.js (startQuiz), removed in endQuiz. */
-.tool-bar.is-quiz-active {
-  box-shadow: 0 0 0 2px var(--accent);
 }
 
 /* Looks disabled like a real button:disabled, but stays clickable. */
@@ -517,7 +473,6 @@ select {
   font-weight: 700;
 }
 
-/* Stack the challenge text and its work-in-progress notice vertically. */
 #challenge-row {
   flex-direction: column;
 }
@@ -630,6 +585,10 @@ body.resizing .board-resize {
   background: var(--accent-soft);
   color: var(--accent);
   font-weight: 700;
+}
+
+.notation-move-inline.sideline.selected {
+  font-weight: 400;
 }
 
 .tree-panel {
@@ -794,7 +753,6 @@ body.resizing .board-resize {
 
 .tree {
   overflow: auto;
-  padding: 0 0 14px;
 }
 
 .notation-table {
@@ -802,13 +760,11 @@ body.resizing .board-resize {
   grid-template-columns: 42px minmax(0, 1fr) minmax(0, 1fr);
   align-content: start;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
 }
 
 .notation-number,
 .notation-cell {
   min-height: 36px;
-  border-bottom: 1px solid var(--border);
 }
 
 .notation-number {
@@ -838,15 +794,96 @@ body.resizing .board-resize {
   border-radius: 0;
 }
 
+.notation-move-empty {
+  padding: 6px 12px;
+  color: var(--notation-num-fg);
+  font-size: 1.05rem;
+}
+
 .notation-empty {
   grid-column: 1 / -1;
   padding: 18px;
   color: var(--muted);
 }
 
-.notation-flow {
-  padding: 12px 14px 4px;
-  line-height: 1.9;
+.notation-variation-row {
+  position: relative;
+  grid-column: 1 / -1;
+  padding: 6px 14px 6px 13px;
+  border-top: 1px solid var(--border);
+  background: var(--notation-num-bg);
+  color: var(--mainline);
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.notation-variation-row + .notation-variation-row {
+  border-top: none;
+}
+
+.notation-variation-row:not(:has(+ .notation-variation-row)) {
+  border-bottom: 1px solid var(--border);
+}
+
+.notation-table > .notation-variation-row:last-child {
+  border-bottom: none;
+}
+
+.notation-variation-row::before,
+.notation-variation-row::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+
+.notation-variation-row::before {
+  top: 0;
+  bottom: 0;
+  border-left: 2px solid var(--border-strong);
+}
+
+.notation-variation-row:not(:has(+ .notation-variation-row))::before {
+  bottom: auto;
+  height: calc(6px + 0.5lh);
+}
+
+.notation-variation-row::after {
+  top: calc(6px + 0.5lh);
+  width: 8px;
+  height: 2px;
+  background: var(--border-strong);
+}
+
+.variation-block {
+  position: relative;
+  display: block;
+  margin: 2px 0 2px 2px;
+  padding-left: 14px;
+}
+
+.variation-block::before,
+.variation-block::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+
+.variation-block::before {
+  top: 0;
+  bottom: 0;
+  border-left: 2px solid var(--border);
+}
+
+.variation-block:not(:has(+ .variation-block))::before {
+  bottom: auto;
+  height: 0.5lh;
+}
+
+.variation-block::after {
+  top: 0.5lh;
+  width: 7px;
+  height: 2px;
+  background: var(--border);
 }
 
 .notation-move-inline {
@@ -860,23 +897,32 @@ body.resizing .board-resize {
 }
 
 .notation-move-inline.sideline {
-  font-size: 0.94rem;
+  font-size: 0.95rem;
+  color: var(--mainline);
+}
+
+.variation,
+.variation-block {
+  font-size: 0.9rem;
+}
+
+.variation .notation-move-inline,
+.variation-block .notation-move-inline {
+  font-size: 0.9rem;
+}
+
+.variation,
+.variation .notation-move-inline.sideline {
   font-style: italic;
   color: var(--sideline-fg);
 }
 
-.variation-box {
-  display: block;
-  margin: 6px 0 6px 10px;
-  padding: 5px 8px 5px 10px;
-  border-left: 3px solid var(--variation-border);
-  border-radius: 0 6px 6px 0;
-  background: var(--variation-bg);
+.variation-open {
+  white-space: nowrap;
 }
 
-.variation-box .variation-box {
-  border-left-color: var(--variation-nested-border);
-  background: var(--variation-nested-bg);
+.variation .variation {
+  opacity: 0.85;
 }
 
 .repertoire-controls {

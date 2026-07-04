@@ -12,15 +12,13 @@ const GENERAL_DESCRIPTION =
   'Get started by selecting a chapter or searching by PGN/FEN.';
 
 // Maximum positionDistance for a non-exact match to be offered as the
-// "closest similar position" — roughly "about one move away" (see
-// positionDistance below).
+// "closest similar position" — roughly "about one move away"
 const MAX_SIMILAR_DISTANCE = 6;
 
 const QUIZ_DESCRIPTION = 'White to move: seize the initiative with precise attack!';
 
 // In-memory "scratch" chapter created the first time a user plays a move on the
-// home page (no real chapter open). It is never persisted and never shown in the
-// chapter dropdown.
+// home page (no real chapter open).
 const SCRATCH_ID = '__scratch__';
 
 // Board color theme constants (logic in initSettings()/applyBoardTheme() below).
@@ -396,6 +394,14 @@ async function init() {
       clearSelection();
     }
   });
+  els.tree.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-id]');
+    if (!button) return;
+    const node = state.nodesById.get(button.dataset.id);
+    if (!node) return;
+    playMove(node.san);
+    selectNode(node.id);
+  });
   els.startLine.addEventListener('click', selectStart);
   els.prevMove.addEventListener('click', selectPrevious);
   els.nextMove.addEventListener('click', selectNext);
@@ -478,17 +484,13 @@ function selectChapter(chapterId, preferredNodeId = null, updateHash = true) {
   const rootId = getRootNode().id;
   const defaultNodeId = preferredNodeId && state.nodesById.has(preferredNodeId) ? preferredNodeId : getOpeningEntryNodeId(rootId);
   selectNode(defaultNodeId, updateHash);
-  renderTree();
 }
 
-// Opening a chapter jumps past its forced, branch-free trunk rather than
-// landing on the bare start position. Accepted-line chapters (1-4, 6-9) share
-// an identical trunk through 4. Nxc3 (the default below); chapter 3 also
-// shares its own further trunk (through 8...a6, covered by chapters 2 and 9),
-// hence its override. Declined/sideline chapters (12, 13) reach a different
-// move at the same ply, so this falls back to the chapter root for them.
 const OPENING_ENTRY_OVERRIDES = {
+  ch1: {ply: 2, san: 'c5'},
   ch3: { ply: 16, san: 'a6' },
+  ch12: { ply: 3, san: 'd4' },
+  ch13: { ply: 6, san: 'd3' },
 };
 const DEFAULT_OPENING_ENTRY = { ply: 7, san: 'Nxc3' };
 
@@ -527,15 +529,24 @@ function selectNode(nodeId, updateHash = true) {
     ...(state.quizActive ? {} : freePlayBoardConfig(node.fen)),
   });
   setDescription(description);
-  renderTree();
+  updateTreeSelection(nodeId);
   updateNavigationState();
   if (!els.exportRow.hidden) refreshExportPgn();
 
-  // Ephemeral nodes (user moves / scratch chapter) aren't persisted, so keep
-  // them out of the shareable URL.
   if (updateHash && !node.isUser && state.chapter.id !== SCRATCH_ID) {
     replaceHash(`${state.chapter.id}/${node.id}`);
   }
+}
+
+function updateTreeSelection(nodeId) {
+  const target = els.tree.querySelector(`[data-id="${nodeId}"]`);
+  if (!target) {
+    renderTree();
+    return;
+  }
+  els.tree.querySelector('.selected')?.classList.remove('selected');
+  target.classList.add('selected');
+  target.scrollIntoView({ block: 'nearest' });
 }
 
 function renderTree() {
@@ -550,51 +561,57 @@ function renderTree() {
     return;
   }
 
-  // The opening "trunk" (the forced sequence before the first branch) is shown
-  // as a clean numbered table; branching begins at its final node.
-  const trunk = getTrunk(root);
-  const branchPoint = trunk.length > 0 ? trunk[trunk.length - 1] : root;
-
-  if (trunk.length > 0) {
-    els.tree.append(renderTrunkTable(trunk));
-  }
-
-  const flow = document.createElement('div');
-  flow.className = 'notation-flow';
-  renderMovesFrom(branchPoint, flow, true);
-  if (flow.childNodes.length > 0) {
-    els.tree.append(flow);
-  }
+  const table = document.createElement('div');
+  table.className = 'notation-table';
+  renderMainlineRows(root, table);
+  els.tree.append(table);
 
   els.tree.querySelector('.selected')?.scrollIntoView({ block: 'nearest' });
 }
 
-function getTrunk(root) {
-  const trunk = [];
-  let node = mainlineChild(root);
-  while (node) {
-    trunk.push(node);
-    if (node.children.length !== 1) break;
-    node = mainlineChild(node);
+const EMPTY_MOVE = Symbol('empty-move');
+
+function renderMainlineRows(position, table) {
+  let node = position;
+
+  while (true) {
+    const white = mainlineChild(node);
+    if (!white) return;
+    const whiteVariations = siblingVariations(node, white);
+
+    const black = mainlineChild(white);
+    const blackVariations = black ? siblingVariations(white, black) : [];
+    const number = String(Math.ceil(white.ply / 2));
+
+    if (whiteVariations.length > 0) {
+      appendMoveRow(table, number, white, EMPTY_MOVE);
+      appendVariationRows(table, whiteVariations);
+      if (black) appendMoveRow(table, number, EMPTY_MOVE, black);
+    } else {
+      appendMoveRow(table, number, white, black);
+    }
+    appendVariationRows(table, blackVariations);
+
+    if (!black) return;
+    node = black;
   }
-  return trunk;
 }
 
-function renderTrunkTable(trunk) {
-  const table = document.createElement('div');
-  table.className = 'notation-table';
+function appendMoveRow(table, number, whiteCell, blackCell) {
+  const moveNumber = document.createElement('div');
+  moveNumber.className = 'notation-number';
+  moveNumber.textContent = number;
+  table.append(moveNumber, renderNotationCell(whiteCell), renderNotationCell(blackCell));
+}
 
-  for (const row of groupMovesByNumber(trunk)) {
-    const moveNumber = document.createElement('div');
-    moveNumber.className = 'notation-number';
-    moveNumber.textContent = row.number;
-    table.append(moveNumber);
-
-    table.append(renderNotationCell(row.white));
-    table.append(renderNotationCell(row.black));
+function appendVariationRows(table, variations) {
+  for (const variation of variations) {
+    table.append(renderVariationLine(variation, 'notation-variation-row'));
   }
+}
 
-  return table;
+function siblingVariations(parent, chosen) {
+  return parent.children.map((id) => state.nodesById.get(id)).filter((child) => child !== chosen);
 }
 
 function renderNotationCell(node) {
@@ -603,17 +620,23 @@ function renderNotationCell(node) {
 
   if (!node) return cell;
 
+  if (node === EMPTY_MOVE) {
+    const empty = document.createElement('span');
+    empty.className = 'notation-move-empty';
+    empty.textContent = '…';
+    cell.append(empty);
+    return cell;
+  }
+
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `notation-move${node.id === state.selectedNodeId ? ' selected' : ''}`;
   button.textContent = node.san + (node.sanSuffix || '');
-  button.addEventListener('click', () => { playMove(node.san); selectNode(node.id); });
+  button.dataset.id = node.id;
   cell.append(button);
   return cell;
 }
 
-// Render every move from `position` onward as flowing notation: the main line
-// stays inline, while each alternative becomes a nested, boxed side line.
 function renderMovesFrom(position, container, forceNumber) {
   let node = position;
   let force = forceNumber;
@@ -625,23 +648,52 @@ function renderMovesFrom(position, container, forceNumber) {
     const main = children.find((child) => child.isMainline) || children[0];
     const variations = children.filter((child) => child !== main);
 
-    container.append(renderInlineMove(main, force));
-    for (const variation of variations) {
-      container.append(renderVariationBox(variation));
+    const parenthetical = variations.length === 1 && !hasDeepBranching(variations[0]);
+
+    if (variations.length > 0 && !parenthetical) {
+      for (const child of children) {
+        container.append(renderVariationLine(child, 'variation-block'));
+      }
+      return;
     }
 
-    // After a side line interrupts the flow, restate the main move's number.
+    container.append(renderInlineMove(main, force));
+    for (const variation of variations) {
+      container.append(renderVariation(variation));
+    }
+
     force = variations.length > 0;
     node = main;
   }
 }
 
-function renderVariationBox(variation) {
-  const box = document.createElement('div');
-  box.className = 'variation-box';
-  box.append(renderInlineMove(variation, true));
-  renderMovesFrom(variation, box, false);
-  return box;
+const VARIATION_LOOKAHEAD_PLIES = 6;
+
+function hasDeepBranching(node, depth = VARIATION_LOOKAHEAD_PLIES) {
+  if (depth <= 0) return true;
+  if (node.children.length > 1) return true;
+  const next = mainlineChild(node);
+  return next ? hasDeepBranching(next, depth - 1) : false;
+}
+
+function renderVariation(variation) {
+  const span = document.createElement('span');
+  span.className = 'variation';
+  const opening = document.createElement('span');
+  opening.className = 'variation-open';
+  opening.append(' (', renderInlineMove(variation, true));
+  span.append(opening);
+  renderMovesFrom(variation, span, false);
+  span.append(')');
+  return span;
+}
+
+function renderVariationLine(variation, className) {
+  const el = document.createElement('div');
+  el.className = className;
+  el.append(renderInlineMove(variation, true));
+  renderMovesFrom(variation, el, false);
+  return el;
 }
 
 function renderInlineMove(node, forceNumber) {
@@ -651,7 +703,7 @@ function renderInlineMove(node, forceNumber) {
   const selected = node.id === state.selectedNodeId ? ' selected' : '';
   button.className = `notation-move-inline ${role}${selected}`;
   button.textContent = inlineLabel(node, forceNumber);
-  button.addEventListener('click', () => { playMove(node.san); selectNode(node.id); });
+  button.dataset.id = node.id;
   return button;
 }
 
@@ -756,25 +808,6 @@ function getSelectedPath() {
   }
 
   return path;
-}
-
-function groupMovesByNumber(path) {
-  const rowsByNumber = new Map();
-  for (const node of path) {
-    const number = Math.ceil(node.ply / 2);
-    if (!rowsByNumber.has(number)) {
-      rowsByNumber.set(number, { number: String(number), white: null, black: null });
-    }
-
-    const row = rowsByNumber.get(number);
-    if (node.ply % 2 === 1) {
-      row.white = node;
-    } else {
-      row.black = node;
-    }
-  }
-
-  return Array.from(rowsByNumber.values());
 }
 
 function getLastMove(node) {
@@ -945,10 +978,7 @@ function startQuiz() {
   els.quizMode.setAttribute('aria-label', 'Quit quiz mode');
   els.quizMode.title = 'Quit quiz mode';
   els.quizModeIcon.style.display = 'none';
-  els.quizExitIcon.hidden = false;
-
-  els.quizMode.classList.add('is-emphasized', 'is-quiz-active');
-  setTimeout(() => els.quizMode.classList.remove('is-emphasized'), 500);
+  els.quizExitIcon.style.display = '';
 }
 
 function endQuiz(message, kind) {
@@ -977,8 +1007,7 @@ function endQuiz(message, kind) {
   els.quizMode.setAttribute('aria-label', "Quiz mode — practice White's moves from here");
   els.quizMode.title = "Quiz mode — practice White's moves from here";
   els.quizModeIcon.style.display = '';
-  els.quizExitIcon.hidden = true;
-  els.quizMode.classList.remove('is-emphasized', 'is-quiz-active');
+  els.quizExitIcon.style.display = 'none';
 
   // Resyncs description, tree, hash, and nav-button disabled state.
   selectNode(state.selectedNodeId, true);
