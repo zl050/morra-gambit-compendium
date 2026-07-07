@@ -26,24 +26,15 @@
   --board-selected: rgba(20, 85, 30, 0.5);
   --board-dest: rgba(20, 85, 30, 0.5);
   --board-dest-oc: rgba(20, 85, 0, 0.3);
-
-  /* Warm the surrounding chrome (nav bar) to match the wooden board. */
-  --nav-bg: #2e251d;
-  --nav-border: #463a2d;
-  --nav-fg: #d9c9b3;
-  --nav-hover-bg: #3b3024;
 }
 
-/* Light appearance + brown board: warm the accent from the default blue to brown. */
+/* light + brown */
 :root.theme-brown:not(.appearance-dark) {
   --accent: #8c5a2a;
   --accent-soft: #f2e0cc;
 }
 
-/* Dark appearance + brown board: replace the blue-tinted dark UI chrome with
-   warm espresso tones that feel continuous with the wooden board. Nav vars are
-   intentionally omitted — they inherit the correct warm values from theme-brown
-   above (same specificity, later in cascade). */
+/* dark + brown */
 :root.appearance-dark.theme-brown {
   color: #ecdccc;
   background: #1b170f;
@@ -54,6 +45,7 @@
   --border: #463726;
   --border-strong: #5a4732;
   --edge-highlight: rgba(255, 235, 210, 0.05);
+  --switch-off-bg: #261D15;
   --muted: #9a8a76;
   --accent: #c8894e;
   --accent-soft: #422b18;
@@ -63,16 +55,14 @@
   --notation-num-fg: #7a6a58;
   --notation-move-fg: #c4b09a;
   --sideline-fg: #7a6a58;
-  --variation-bg: #251e14;
-  --variation-border: #4a3828;
-  --variation-nested-bg: #2d2419;
-  --variation-nested-border: #584438;
+  --tip-border: #6e5842;
+  --tip-bg: #3d2f1e;
 }
 
 /* Square base colors: a two-color checkerboard built from a 2x2-square conic
-   tile repeated to 8x8, so the light and dark shades can be chosen freely
-   (chessground's bundled themes tie the dark square to a tint of the light). */
-.board-frame cg-board {
+   tile repeated to 8x8, so the light and dark shades can be chosen freely */
+.board-frame cg-board,
+.engine-pv-preview cg-board {
   background-color: var(--board-light);
   background-image: conic-gradient(
     var(--board-dark) 0deg 90deg,

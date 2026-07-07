@@ -1,29 +1,37 @@
-# Smith-Morra Repertoire Viewer
+# Smith-Morra Gambit Compendium
 
-A standalone static website for browsing a curated Smith-Morra Gambit repertoire
+A standalone static website for browsing a concise Smith-Morra Gambit compendium
 by chapter, on an interactive board. Select a chapter or search by PGN/FEN, step
-through the lines and practise White's moves in quiz mode.
+through the lines, consult pre-fetched cloud engine evals, and practise White's
+moves in quiz mode.
 
-## Acknowledgements
+## File structure
 
-The repertoire draws on ideas and selected lines from *Mayhem in the Morra*
-(2012) by **Marc Esserman** — with thanks to the author for the foundational
-work behind this opening. The lines have been modified and restructured
-through original analysis, rather than reproduced from the book.
-
-Coverage is not yet comprehensive and will continue to expand.
+```
+data/
+  pgn/                 curated PGN source files — the editable source of truth
+scripts/
+  export_repertoire.py        data/pgn/ -> data/repertoire.json
+  fetch_cloud_evals.py        data/repertoire.json -> data/cloud-evals.json
+src/                   viewer frontend: app logic, styles, piece set, sound effects
+public/                static assets
+index.html             page markup
+vite.config.js         dev/build config; also copies data/*.json into dist/ on build
+```
 
 ## Development
 
-Requires [pnpm](https://pnpm.io/) and Python. PGN files in `data/pgn/` are the
-editable source of truth; the export script regenerates `data/repertoire.json`.
+Requires [pnpm](https://pnpm.io/) and Python.
 
 ```powershell
 python -m pip install python-chess
 pnpm install
-python scripts/export_repertoire_json.py
+python scripts/export_repertoire.py
+python scripts/fetch_cloud_evals.py
 pnpm run dev
 ```
+
+After editing a PGN file, run both scripts to regenerate the data files.
 
 ## License & attribution
 

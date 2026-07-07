@@ -21,16 +21,12 @@ const QUIZ_DESCRIPTION = 'White to move: seize the initiative with precise attac
 // home page (no real chapter open).
 const SCRATCH_ID = '__scratch__';
 
-// Board color theme constants (logic in initSettings()/applyBoardTheme() below).
-// Declared up here so the top-level initSettings() call isn't in their TDZ.
-const BOARD_THEME_KEY = 'smg:board-theme';
 const BOARD_THEMES = ['blue', 'brown'];
-const DEFAULT_BOARD_THEME = 'blue';
 
 // "Display" menu settings persisted to localStorage.
 const SETTING_KEYS = {
   appearance: 'smg:appearance',
-  board: BOARD_THEME_KEY,
+  board: 'smg:board-theme',
   pieces: 'smg:pieces',
 };
 const SETTING_VALUES = {
@@ -40,8 +36,8 @@ const SETTING_VALUES = {
 };
 const SETTING_DEFAULTS = {
   appearance: 'light',
-  board: DEFAULT_BOARD_THEME,
-  pieces: 'merida',
+  board: 'blue',
+  pieces: 'cburnett',
 };
 
 const els = {
@@ -72,8 +68,16 @@ const els = {
   quizExitIcon: document.querySelector('#quiz-exit-icon'),
   quizStatus: document.querySelector('#quiz-status'),
   treePanel: document.querySelector('#tree-panel'),
-  notesAck: document.querySelector('#notes-ack'),
   notesBlock: document.querySelector('#notes-block'),
+  enginePanel: document.querySelector('#engine-panel'),
+  engineToggle: document.querySelector('#engine-toggle'),
+  engineEval: document.querySelector('#engine-eval'),
+  engineNote: document.querySelector('#engine-note'),
+  enginePvs: document.querySelector('#engine-pvs'),
+  enginePvPreview: document.querySelector('#engine-pv-preview'),
+  enginePvPreviewBoard: document.querySelector('#engine-pv-preview-board'),
+  engineMetaSecondary: document.querySelector('#engine-meta-secondary'),
+  engineInfoBtn: document.querySelector('#engine-info-btn'),
 };
 
 const state = {
@@ -83,6 +87,9 @@ const state = {
   selectedNodeId: null,
   fenIndex: new Map(),
   quizActive: false,
+  engineEnabled: false,
+  // Static cloud evals (data/cloud-evals.json), keyed by node FEN.
+  cloudEvals: new Map(),
   // Counters for the current quiz session's summary, reset in startQuiz().
   quizCorrectCount: 0,
   quizRetryCount: 0,
@@ -92,34 +99,24 @@ const state = {
   notesEmphasized: false,
 };
 
-// `viewOnly` must stay false for the board's whole lifetime. Chessground binds
-// the board's pointer listeners only at construction/redrawAll, and only when
-// not viewOnly; ground.set() never rebinds them. A board created viewOnly could
-// therefore never become interactive for quiz mode. Interactivity is gated
-// instead via movable.color / draggable.enabled.
-//
-// Right-click annotations (drawable) are enabled here, at construction, so they
-// work globally — while browsing and during quiz mode alike — since drawing is
-// independent of movable/quiz state (and enabling at construction is what binds
-// the contextmenu-suppression listener). Right-click a square for a circle;
-// right-click-drag between squares for an arrow. defaultSnapToValidMove is off so
-// an arrow can connect any two squares (no legality/geometry limit).
+// `viewOnly` must stay false for the board's whole lifetime. 
+// Interactivity is gated instead via movable.color / draggable.enabled.
+// 
+// Drawable is enabled here, at construction, since that's what binds the
+// contextmenu-suppression listener — drawing works globally.
 const ANNOTATION_BLUE = '#003088';
 const ANNOTATION_RED = '#882020';
 
-// chessground's eventBrush() always returns one of four fixed brush *slots*,
-// chosen purely by modifier — the slot names happen to be colors but carry no
-// color meaning to us. Alias them by modifier so the colors below read honestly:
-// a plain right-click draws blue, any modifier draws red.
+// chessground's eventBrush() picks one of four fixed slots by modifier; the
+// slot names are colors but carry no color meaning to us, so alias them by
+// modifier instead.
 const SLOT_NONE = 'green'; // right-click, no modifier
 const SLOT_SHIFT_CTRL = 'red'; // + Shift / Ctrl
 const SLOT_ALT = 'blue'; // + Alt
-const SLOT_SHIFT_CTRL_ALT = 'yellow'; // + Shift/Ctrl and Alt
 const annotationBrushes = {
   [SLOT_NONE]: { key: 'g', color: ANNOTATION_BLUE, opacity: 1, lineWidth: 10 },
   [SLOT_SHIFT_CTRL]: { key: 'r', color: ANNOTATION_RED, opacity: 1, lineWidth: 10 },
   [SLOT_ALT]: { key: 'b', color: ANNOTATION_RED, opacity: 1, lineWidth: 10 },
-  [SLOT_SHIFT_CTRL_ALT]: { key: 'y', color: ANNOTATION_RED, opacity: 1, lineWidth: 10 },
 };
 const ground = Chessground(els.board, {
   fen: START_FEN,
@@ -139,23 +136,17 @@ setupBoardResize();
 initSettings();
 init();
 
-// A small grip in the board's bottom-right corner lets the user drag to resize
-// the board within a modest range. It lives in `.board-frame` as a sibling of
-// `#board`, not inside chessground's DOM (`redrawAll()` would wipe it).
-//
-// Chessground rounds the rendered board down to integer square sizes, so it's
-// a few px smaller than `.board-frame` and the gap varies as the (fractional)
-// frame width is dragged. Pinning the handle to the frame corner would make it
-// jitter outside the board, so instead we reposition it onto the rendered
-// board's actual corner after every redraw, coalesced to one per frame.
+// Resize grip lives in `.board-frame`, not chessground's DOM (`redrawAll()`
+// would wipe it). Chessground rounds the board to integer square sizes, so
+// it's a few px smaller than the frame and the gap varies as the frame is
+// dragged — the handle is repositioned onto the rendered board's actual
+// corner after every redraw instead of being pinned to the frame corner.
 function setupBoardResize() {
   const frame = document.querySelector('.board-frame');
   const handle = document.querySelector('#board-resize');
   if (!frame || !handle) return;
 
-  // Snap the handle onto the real (rounded) board's bottom-right corner. The
-  // 22px handle is offset so its box overhangs that corner by 9px, exactly like
-  // lichess's `right/bottom: -9px`, leaving the two slashes hugging the edge.
+  // 22px handle offset to overhang the corner by 9px, like lichess's -9px.
   const positionHandle = () => {
     const container = els.board.querySelector('cg-container');
     if (!container) return;
@@ -201,16 +192,12 @@ function setupBoardResize() {
     const styles = getComputedStyle(shell.parentElement);
     const multiColumn = styles.gridTemplateColumns.split(' ').length > 1;
     const gap = parseFloat(styles.columnGap) || 0;
-    // Largest size that still fits the layout cleanly: in the 3-column view the
-    // board may fill its column and borrow the two inter-column gaps (without
-    // covering the side panels), bounded by the locked viewport height; the
-    // single-column view just fills the available width.
+    // Largest size that still fits the layout cleanly.
     const layoutMax = multiColumn
       ? Math.min(shell.clientHeight, shell.clientWidth + 2 * gap)
       : shell.clientWidth;
     // Keep the zoom modest and relative to the board's initial size: 0.75x–1.25x.
-    // The displayed initial size is 1.1x the original baseline, so divide it back
-    // out before applying the 0.75x–1.25x range to that original baseline.
+    // The displayed initial size is 1.1x the original baseline.
     const baseSize = initialBoardSize / 1.1;
     const minSize = baseSize * 0.75;
     const maxSize = Math.min(baseSize * 1.25, layoutMax);
@@ -236,10 +223,8 @@ function setupBoardResize() {
   handle.addEventListener('pointerup', endDrag);
   handle.addEventListener('pointercancel', endDrag);
 
-  // Keep the handle glued to the board corner whenever the rendered board
-  // changes size — the first render, every redraw during a drag, and any
-  // responsive reflow all flow through this one observer. (cg-container may not
-  // exist on the very first frame, so retry until chessground has built it.)
+  // Reposition on first render and any later resize. cg-container may not
+  // exist yet on the very first frame, so retry until chessground builds it.
   const observeBoard = () => {
     const container = els.board.querySelector('cg-container');
     if (!container) {
@@ -259,11 +244,7 @@ function setupBoardResize() {
 //   Appearance → `appearance-dark` on <html> (dark color palette)
 //   Board      → `theme-*` on <html> (board colors + brown nav/grip)
 //   Pieces     → `pieces-merida` on #board (swaps the piece SVGs)
-// The SETTING_* / BOARD_THEME_* constants are declared near the top of the file
-// so this section's top-level call isn't in their TDZ.
 
-// Reflect a setting row's chosen value: highlight the active option button and
-// show the matching left icon.
 function selectOption(setting, value) {
   const row = els.settingsMenu.querySelector(`.settings-row[data-setting="${setting}"]`);
   if (!row) return;
@@ -278,7 +259,6 @@ function selectOption(setting, value) {
   }
 }
 
-// Apply a board theme: flip the `theme-*` class on <html>, then reflect it in the menu.
 function applyBoardTheme(theme) {
   const root = document.documentElement;
   for (const name of BOARD_THEMES) {
@@ -287,19 +267,16 @@ function applyBoardTheme(theme) {
   selectOption('board', theme);
 }
 
-// Apply the appearance (light/dark): toggle `appearance-dark` on <html>.
 function applyAppearance(value) {
   document.documentElement.classList.toggle('appearance-dark', value === 'dark');
   selectOption('appearance', value);
 }
 
-// Apply a piece set: toggle `pieces-merida` on #board to swap piece images.
 function applyPieces(value) {
   els.board.classList.toggle('pieces-merida', value === 'merida');
   selectOption('pieces', value);
 }
 
-// Read a persisted setting value, or its default if unset/invalid.
 function readSetting(setting) {
   try {
     const saved = localStorage.getItem(SETTING_KEYS[setting]);
@@ -310,7 +287,6 @@ function readSetting(setting) {
   return SETTING_DEFAULTS[setting];
 }
 
-// Apply a setting: Board re-themes the page; appearance toggles dark mode; pieces swaps piece images.
 function applySetting(setting, value) {
   if (setting === 'board') applyBoardTheme(value);
   else if (setting === 'appearance') applyAppearance(value);
@@ -334,7 +310,6 @@ function initSettings() {
     try {
       localStorage.setItem(SETTING_KEYS[setting], value);
     } catch {
-      // Persistence is best-effort; the in-page switch still works without it.
     }
   });
 
@@ -368,9 +343,24 @@ async function init() {
   initSounds();
 
   try {
-    const response = await fetch('./data/repertoire.json', { cache: 'no-store' });
+    const [response, evalsResponse] = await Promise.all([
+      fetch('./data/repertoire.json', { cache: 'no-cache' }),
+      fetch('./data/cloud-evals.json', { cache: 'no-cache' }).catch(() => null),
+    ]);
     if (!response.ok) {
       throw new Error(`Could not load repertoire.json (${response.status})`);
+    }
+    if (evalsResponse?.ok) {
+      try {
+        const rawEvals = await evalsResponse.json();
+        for (const [fen, data] of Object.entries(rawEvals)) {
+          state.cloudEvals.set(fenKey(fen), data);
+        }
+      } catch {
+        console.warn('cloud-evals.json is corrupt');
+      }
+    } else {
+      console.warn('Could not load cloud-evals.json');
     }
 
     state.repertoire = await response.json();
@@ -378,6 +368,7 @@ async function init() {
     renderChapterOptions();
     restoreFromHash();
     if (!state.chapter) {
+      document.documentElement.classList.add('is-home');
       applyFreePlay(START_FEN);
       updateNavigationState();
     }
@@ -387,18 +378,13 @@ async function init() {
 
   els.chapterSelect.addEventListener('change', () => {
     if (state.quizActive) return;
-    const chapterId = els.chapterSelect.value;
-    if (chapterId) {
-      selectChapter(chapterId);
-    } else {
-      clearSelection();
-    }
+    selectChapter(els.chapterSelect.value);
   });
   els.tree.addEventListener('click', (event) => {
     const button = event.target.closest('[data-id]');
     if (!button) return;
     const node = state.nodesById.get(button.dataset.id);
-    if (!node) return;
+    if (!node || node.id === state.selectedNodeId) return;
     playMove(node.san);
     selectNode(node.id);
   });
@@ -421,6 +407,26 @@ async function init() {
   });
   els.copyPgn.addEventListener('click', copyExportPgn);
   els.toggleChallenge.addEventListener('click', () => toggleToolRow(els.challengeRow, els.toggleChallenge));
+  els.engineToggle.addEventListener('click', toggleEnginePanel);
+  setupEngineInfoTip();
+  els.enginePvs.addEventListener('click', (event) => {
+    if (state.quizActive) return;
+    const button = event.target.closest('.engine-pv-move');
+    if (!button) return;
+    const isHomeFirstMove = !state.chapter;
+    if (isHomeFirstMove) startScratchChapter();
+    const anchor = getSelectedNode();
+    const node = walkUciMoves(anchor, button.dataset.uci.split(' '));
+    if (node.id === anchor.id) return;
+    playMove(node.san);
+    selectNode(node.id);
+    if (isHomeFirstMove) emphasizeNotesOnce();
+  });
+  els.enginePvs.addEventListener('mouseover', (event) => {
+    const button = event.target.closest('.engine-pv-move');
+    if (button) showPvPreview(button);
+  });
+  els.enginePvs.addEventListener('mouseleave', hidePvPreview);
   els.quizMode.addEventListener('click', () => {
     if (state.quizActive) {
       endQuiz();
@@ -440,6 +446,7 @@ async function init() {
   );
   window.addEventListener('keydown', (event) => {
     if (state.quizActive) return;
+    if (event.target instanceof Element && event.target.closest('input, textarea, select')) return;
     if (event.key === 'ArrowLeft') selectPrevious();
     if (event.key === 'ArrowRight') selectNext();
   });
@@ -448,7 +455,7 @@ async function init() {
 
 const CHAPTER_GROUP_BOUNDARIES = [
   { beforeId: 'ch1', label: 'Accepted' },
-  { beforeId: 'ch12', label: 'Declined' },
+  { beforeId: 'ch11', label: 'Declined' },
 ];
 
 function renderChapterOptions() {
@@ -472,7 +479,9 @@ function selectChapter(chapterId, preferredNodeId = null, updateHash = true) {
   if (!chapter) return;
 
   state.chapter = chapter;
-  els.notesBlock?.classList.remove('is-emphasized', 'is-highlighted');
+  document.documentElement.classList.remove('is-home');
+  els.notesBlock?.classList.remove('is-emphasized');
+  clearQuizStatus();
   // Clone nodes into a working copy so free-play edits never mutate the shared
   // repertoire data (also backing fenIndex/search) and are discarded on switch.
   state.nodesById = new Map(
@@ -481,39 +490,14 @@ function selectChapter(chapterId, preferredNodeId = null, updateHash = true) {
   state.nodeSeq = 0;
   els.chapterSelect.value = chapter.id;
 
-  const rootId = getRootNode().id;
-  const defaultNodeId = preferredNodeId && state.nodesById.has(preferredNodeId) ? preferredNodeId : getOpeningEntryNodeId(rootId);
+  const defaultNodeId = preferredNodeId && state.nodesById.has(preferredNodeId) ? preferredNodeId : getOpeningEntryNodeId();
   selectNode(defaultNodeId, updateHash);
 }
 
-const OPENING_ENTRY_OVERRIDES = {
-  ch1: {ply: 2, san: 'c5'},
-  ch3: { ply: 16, san: 'a6' },
-  ch12: { ply: 3, san: 'd4' },
-  ch13: { ply: 6, san: 'd3' },
-};
-const DEFAULT_OPENING_ENTRY = { ply: 7, san: 'Nxc3' };
-
-function getOpeningEntryNodeId(rootId) {
-  const target = OPENING_ENTRY_OVERRIDES[state.chapter.id] || DEFAULT_OPENING_ENTRY;
-  let node = state.nodesById.get(rootId);
-  for (let i = 0; i < target.ply && node.children.length > 0; i++) {
-    node = mainlineChild(node);
-    if (!node) return rootId;
-  }
-  return node && node.san === target.san && node.ply === target.ply ? node.id : rootId;
-}
-
-function clearSelection() {
-  state.chapter = null;
-  state.nodesById = new Map();
-  state.selectedNodeId = null;
-  ground.set({ fen: START_FEN, lastMove: undefined, ...freePlayBoardConfig(START_FEN) });
-  setDescription(GENERAL_DESCRIPTION);
-  els.tree.textContent = '';
-  updateNavigationState();
-  if (!els.exportRow.hidden) refreshExportPgn();
-  replaceHash('');
+// The opening-entry node is authored per chapter in its PGN (`[%entry]`)
+function getOpeningEntryNodeId() {
+  const nodeId = state.chapter.openingEntryNodeId;
+  return state.nodesById.has(nodeId) ? nodeId : getRootNode().id;
 }
 
 function selectNode(nodeId, updateHash = true) {
@@ -532,6 +516,7 @@ function selectNode(nodeId, updateHash = true) {
   updateTreeSelection(nodeId);
   updateNavigationState();
   if (!els.exportRow.hidden) refreshExportPgn();
+  if (state.engineEnabled) showCloudEval(node.fen);
 
   if (updateHash && !node.isUser && state.chapter.id !== SCRATCH_ID) {
     replaceHash(`${state.chapter.id}/${node.id}`);
@@ -713,7 +698,7 @@ function inlineLabel(node, forceNumber) {
   if (node.ply % 2 === 1) {
     return `${moveNumber}.${san}`;
   }
-  return forceNumber ? `${moveNumber}...${san}` : san;
+  return forceNumber ? `${moveNumber}…${san}` : san;
 }
 
 function mainlineChild(node) {
@@ -821,6 +806,238 @@ function toggleToolRow(row, button) {
   return !row.hidden;
 }
 
+// ---- Engine panel ----
+//
+// Evals come from lichess cloud-eval database (no local engine); 
+// The toggle here is a lookup by exact node FEN.
+//
+// cp/mate are from White's point of view — lila normalizes Stockfish's
+// side-to-move scores before storing them (lila ui/lib/src/ceval/protocol.ts).
+
+const ENGINE_PV_MAX_PLIES = 7;
+
+function toggleEnginePanel() {
+  state.engineEnabled = !state.engineEnabled;
+  els.engineToggle.setAttribute('aria-checked', String(state.engineEnabled));
+  // While on, hits and misses share one fixed panel height (CSS min-height).
+  els.enginePanel.classList.toggle('engine-panel--on', state.engineEnabled);
+  if (state.engineEnabled) {
+    showCloudEval(currentFen());
+  } else {
+    renderEngineIdle();
+  }
+}
+
+// `hovering`/`pinned` gate the tip in JS, not CSS :hover, so a click can
+// toggle it regardless of hover state. Touch has no hover, so `pinned` is
+// its only path (pointerType filters mouse-only events).
+function setupEngineInfoTip() {
+  const info = els.engineInfoBtn.closest('.engine-info');
+  let hovering = false;
+  let pinned = false;
+  const sync = () => info.classList.toggle('is-open', hovering || pinned);
+
+  info.addEventListener('pointerenter', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    hovering = true;
+    sync();
+  });
+  info.addEventListener('pointerleave', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    hovering = false;
+    sync();
+  });
+  els.engineInfoBtn.addEventListener('click', () => {
+    pinned = !pinned;
+    if (!pinned) hovering = false;
+    sync();
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!pinned || info.contains(event.target)) return;
+    pinned = false;
+    sync();
+  });
+}
+
+function currentFen() {
+  return getSelectedNode()?.fen ?? START_FEN;
+}
+
+function showCloudEval(fen) {
+  if (state.quizActive) return;
+  const data = state.cloudEvals.get(fenKey(fen));
+  if (data) renderCloudEval(fen, data);
+  else renderEngineMiss();
+}
+
+function renderEngineIdle() {
+  els.engineEval.textContent = ' ';
+  els.engineMetaSecondary.textContent = '';
+  els.engineNote.hidden = true;
+  els.enginePvs.hidden = true;
+  hidePvPreview();
+}
+
+function renderEngineMiss() {
+  els.engineEval.textContent = ' ';
+  els.engineMetaSecondary.textContent = '';
+  els.enginePvs.hidden = true;
+  els.engineNote.textContent = 'No cloud analysis for this position.';
+  els.engineNote.hidden = false;
+  hidePvPreview();
+}
+
+function renderCloudEval(fen, data) {
+  const { depth, pvs } = data;
+  els.engineEval.textContent = formatEval(pvs[0]);
+  els.engineMetaSecondary.textContent = `Depth ${depth}`;
+  els.engineNote.hidden = true;
+  renderPvRows(fen, pvs);
+  els.enginePvs.hidden = false;
+}
+
+function renderPvRows(fen, pvs) {
+  hidePvPreview();
+  els.enginePvs.textContent = '';
+  for (const pv of pvs) {
+    const row = document.createElement('div');
+    row.className = 'engine-pv-row';
+
+    const score = document.createElement('span');
+    score.className = 'engine-pv-score';
+    score.textContent = formatEval(pv);
+
+    const uci = pv.moves.split(' ').slice(0, ENGINE_PV_MAX_PLIES);
+    const moves = document.createElement('span');
+    moves.className = 'engine-pv-moves';
+    renderPvMoveButtons(moves, fen, uci);
+
+    row.append(score, moves);
+    els.enginePvs.append(row);
+  }
+}
+
+// Render `uciMoves` as numbered SAN, each move its own button carrying the
+// UCI prefix needed to reach it (data-uci) — clicked in the delegated
+// handler below to jump the board there, extending the tree if needed.
+function renderPvMoveButtons(container, fen, uciMoves) {
+  const plies = pvToPlies(fen, uciMoves);
+  let needSpace = false;
+  const appendToken = (node) => {
+    if (needSpace) container.append(' ');
+    container.append(node);
+    needSpace = true;
+  };
+  plies.forEach((ply, index) => {
+    if (ply.prefix) appendToken(ply.prefix);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'engine-pv-move';
+    button.textContent = ply.san;
+    button.dataset.uci = uciMoves.slice(0, index + 1).join(' ');
+    button.dataset.fen = ply.fen;
+    appendToken(button);
+  });
+}
+
+// Read-only mini board shown while hovering a PV move — one lazily-built
+// Chessground instance, repositioned/re-fenned per hover.
+let previewGround = null;
+
+function getPreviewGround() {
+  if (!previewGround) {
+    previewGround = Chessground(els.enginePvPreviewBoard, {
+      viewOnly: true,
+      coordinates: false,
+    });
+  }
+  return previewGround;
+}
+
+function showPvPreview(button) {
+  const row = els.enginePvs.lastElementChild;
+  if (!row) return;
+  const panelRect = els.enginePanel.getBoundingClientRect();
+  const rowRect = row.getBoundingClientRect();
+  els.enginePvPreview.style.top = `${rowRect.bottom - panelRect.top}px`;
+  els.enginePvPreview.style.left = `${rowRect.left - panelRect.left}px`;
+  els.enginePvPreview.hidden = false;
+  getPreviewGround().set({
+    fen: button.dataset.fen,
+    orientation: ground.state.orientation,
+    lastMove: getLastMove({ uci: button.dataset.uci.split(' ').pop() }),
+  });
+}
+
+function hidePvPreview() {
+  els.enginePvPreview.hidden = true;
+}
+
+function formatEval(pv) {
+  if (typeof pv.mate === 'number') return `#${pv.mate}`;
+  const pawns = (pv.cp / 100).toFixed(1);
+  if (pv.cp > 0) return `+${pawns}`;
+  if (pv.cp < 0) return pawns;
+  return ` ${pawns}`;
+}
+
+// lichess encodes castling as king-takes-rook (e1h1/e1a1/e8h8/e8a8), which
+// chess.js rejects — normalize to the king's actual destination, guarded on
+// the mover being a king since e.g. a rook e1-h1 is a legal non-castling move.
+const CASTLING_UCI = {
+  e1h1: 'e1g1',
+  e1a1: 'e1c1',
+  e8h8: 'e8g8',
+  e8a8: 'e8c8',
+};
+
+// Apply one UCI move (castling-normalized) to `chess`. 
+// Returns { move, uci: normalized } or null if the move is illegal/malformed.
+function applyUciMove(chess, uci) {
+  const normalized =
+    CASTLING_UCI[uci] && chess.get(uci.slice(0, 2))?.type === 'k' ? CASTLING_UCI[uci] : uci;
+  try {
+    const move = chess.move({
+      from: normalized.slice(0, 2),
+      to: normalized.slice(2, 4),
+      promotion: normalized.slice(4) || undefined,
+    });
+    return { move, uci: normalized };
+  } catch {
+    return null;
+  }
+}
+
+// Walk a cloud PV, returning one entry per ply: { uci, san, prefix, fen }.
+// Stops early at a malformed/illegal tail.
+function pvToPlies(fen, uciMoves) {
+  const chess = new Chess(fen);
+  const plies = [];
+  for (const uci of uciMoves) {
+    const white = chess.turn() === 'w';
+    const number = chess.moveNumber();
+    const applied = applyUciMove(chess, uci);
+    if (!applied) break; // malformed tail — keep whatever converted cleanly
+    const prefix = white ? `${number}.` : plies.length === 0 ? `${number}…` : null;
+    plies.push({ uci: applied.uci, san: applied.move.san, prefix, fen: chess.fen() });
+  }
+  return plies;
+}
+
+// Walk `uciMoves` from `anchor`, reusing existing children or creating
+// synthetic side-line nodes (see attachChild). Stops early on an illegal
+// move, which shouldn't happen since PV moves come from a validated eval.
+function walkUciMoves(anchor, uciMoves) {
+  const chess = new Chess(anchor.fen);
+  let node = anchor;
+  for (const uci of uciMoves) {
+    const applied = applyUciMove(chess, uci);
+    if (!applied) break;
+    node = attachChild(node, chess.fen(), applied.move.san, applied.uci);
+  }
+  return node;
+}
+
 // Build a chessground `dests` map (from-square -> legal to-squares) for the
 // position `fen`, via chess.js's verbose move list. Dedupe promotion entries.
 function computeDests(fen) {
@@ -854,11 +1071,9 @@ function setQuizStatus(message, kind) {
   els.quizStatus.hidden = false;
 }
 
-// Render rich quiz feedback into the single #quiz-status box. `parts` is an
-// array whose items are either strings (text; '\n' becomes a <br>) or
-// { button, onClick } descriptors rendered as inline buttons. Building DOM
-// (rather than innerHTML) keeps SAN text safe and lets the alternative-move
-// buttons carry click handlers.
+// Render rich quiz feedback into #quiz-status. `parts` items are either
+// strings ('\n' becomes <br>) or { button, onClick } inline buttons. Built as
+// DOM, not innerHTML, so SAN text is safe and buttons can carry handlers.
 function setQuizStatusContent(parts, kind) {
   els.quizStatus.replaceChildren();
   els.quizStatus.dataset.kind = kind;
@@ -887,21 +1102,24 @@ function clearQuizStatus() {
   delete els.quizStatus.dataset.kind;
 }
 
-// A White candidate flagged ?! is an inferior ("second-best") move: it is a real
-// child node but is treated as a wrong answer in the quiz.
-function isDubious(node) {
-  return (node.sanSuffix || '').includes('?!');
+function isWrongAnswer(node) {
+  const suffix = node.sanSuffix || '';
+  return suffix === '?' || suffix === '?!';
 }
 
-// Acceptable White replies at a White-to-move node: children NOT flagged ?!.
 function acceptableWhiteChildren(node) {
   return node.children
     .map((id) => state.nodesById.get(id))
-    .filter((child) => !isDubious(child));
+    .filter((child) => !isWrongAnswer(child));
 }
 
 function sanLabel(node) {
   return node.san + (node.sanSuffix || '');
+}
+
+function sanLabelSentence(node) {
+  const label = sanLabel(node);
+  return /[?!]$/.test(label) ? label : `${label}.`;
 }
 
 function startQuiz() {
@@ -912,7 +1130,7 @@ function startQuiz() {
 
   const startNode = getSelectedNode();
   if (startNode.children.length === 0) {
-    setQuizStatus('This is the end of the chapter — there are no more moves to quiz.', 'error');
+    setQuizStatus('This is the end of the line.', 'error');
     return;
   }
 
@@ -923,7 +1141,7 @@ function startQuiz() {
     // the quiz, see presentBlackReply), not a random pick.
     const blackReply = mainlineChild(startNode);
     if (!blackReply || blackReply.children.length === 0) {
-      setQuizStatus('This is the end of the chapter — there are no more moves to quiz.', 'error');
+      setQuizStatus('This is the end of the line.', 'error');
       return;
     }
     currentNode = blackReply;
@@ -956,8 +1174,6 @@ function startQuiz() {
   });
 
   if (blackOpening) {
-    // Quiz starts on Black's move: Black has already played its mainline reply,
-    // and its sibling replies are offered as buttons just like mid-quiz.
     renderOpeningBlackStatus(startNode, currentNode);
   } else {
     setQuizStatus(QUIZ_DESCRIPTION, 'info');
@@ -1019,9 +1235,8 @@ function endQuiz(message, kind) {
   }
 }
 
-// Chessground config that makes the board playable for free (legal moves only,
-// either color, no destination dots) at the position `fen`. Used everywhere a
-// browsable position is shown — outside quiz mode.
+// Chessground config for free play (legal moves only, either color, no
+// destination dots) at `fen`. Used everywhere outside quiz mode.
 function freePlayBoardConfig(fen) {
   return {
     turnColor: turnColorOf(fen),
@@ -1057,22 +1272,32 @@ function startScratchChapter() {
     isMainline: true,
   };
   state.chapter = { id: SCRATCH_ID, title: 'Free play', description: null, nodes: [root] };
+  document.documentElement.classList.add('is-home');
   state.nodesById = new Map([[root.id, root]]);
   state.selectedNodeId = root.id;
   state.nodeSeq = 0;
 }
 
-// Briefly highlight the NOTES panel, once per session, to point the user at the
-// notation that just started recording their moves.
 function emphasizeNotesOnce() {
   if (state.notesEmphasized) return;
   state.notesEmphasized = true;
   const panel = els.notesBlock;
   if (!panel) return;
-  // is-highlighted: persistent ring, removed when a chapter is selected.
-  // is-emphasized: one-shot pulse animation, removed after the duration elapses.
-  panel.classList.add('is-highlighted', 'is-emphasized');
-  setTimeout(() => panel.classList.remove('is-emphasized'), 1400);
+  panel.classList.add('is-emphasized');
+  panel
+    .querySelector('#description-text')
+    ?.addEventListener('animationend', () => panel.classList.remove('is-emphasized'), { once: true });
+}
+
+// Reset the board to `fen` (after an illegal or rejected move attempt),
+// restoring its legal moves.
+function restoreBoardTo(fen, lastMove) {
+  ground.set({
+    fen,
+    turnColor: turnColorOf(fen),
+    lastMove,
+    movable: { dests: computeDests(fen) },
+  });
 }
 
 // Handle a user move while browsing (free play). Walks into an existing child if
@@ -1088,45 +1313,42 @@ function onFreeMove(orig, dest) {
   try {
     result = chess.move({ from: orig, to: dest, promotion: 'q' });
   } catch {
-    ground.set({
-      fen: beforeFen,
-      turnColor: turnColorOf(beforeFen),
-      lastMove: state.chapter ? getLastMove(getSelectedNode()) : undefined,
-      movable: { dests: computeDests(beforeFen) },
-    });
+    restoreBoardTo(beforeFen, state.chapter ? getLastMove(getSelectedNode()) : undefined);
     return;
   }
 
   if (isHomeFirstMove) startScratchChapter();
   const before = getSelectedNode();
+  const node = attachChild(before, chess.fen(), result.san, orig + dest + (result.promotion || ''));
+  playMove(node.san);
+  selectNode(node.id);
 
-  // If a child already reaches this position, walk into it (book or prior move).
-  const existing = before.children
+  if (isHomeFirstMove) emphasizeNotesOnce();
+}
+
+// Reach `fen` from `parent`: reuse an existing child if one already arrives
+// there, otherwise append a new synthetic side-line node. Shared by
+// free-play and PV-jump.
+function attachChild(parent, fen, san, uci) {
+  const existing = parent.children
     .map((id) => state.nodesById.get(id))
-    .find((child) => fenKey(child.fen) === fenKey(chess.fen()));
-  if (existing) {
-    playMove(existing.san);
-    selectNode(existing.id);
-    return;
-  }
+    .find((child) => fenKey(child.fen) === fenKey(fen));
+  if (existing) return existing;
 
   const node = {
     id: `u${state.nodeSeq++}`,
-    parentId: before.id,
-    san: result.san,
-    uci: orig + dest + (result.promotion || ''),
-    ply: before.ply + 1,
-    fen: chess.fen(),
+    parentId: parent.id,
+    san,
+    uci,
+    ply: parent.ply + 1,
+    fen,
     children: [],
     isMainline: false,
     isUser: true,
   };
   state.nodesById.set(node.id, node);
-  before.children.push(node.id);
-  playMove(node.san);
-  selectNode(node.id);
-
-  if (isHomeFirstMove) emphasizeNotesOnce();
+  parent.children.push(node.id);
+  return node;
 }
 
 function onUserMove(orig, dest) {
@@ -1140,17 +1362,11 @@ function onUserMove(orig, dest) {
     result = chess.move({ from: orig, to: dest, promotion: 'q' });
   } catch {
     state.quizRetryCount += 1;
-    ground.set({
-      fen: before.fen,
-      turnColor: turnColorOf(before.fen),
-      lastMove: getLastMove(before),
-      movable: { dests: computeDests(before.fen) },
-    });
+    restoreBoardTo(before.fen, getLastMove(before));
     setQuizStatus("That move isn't legal here.", 'error');
     return;
   }
 
-  // The user's move is correct if it matches any *acceptable* White child
   const acceptable = acceptableWhiteChildren(before);
   const playedKey = fenKey(chess.fen());
   const whiteNode = acceptable.find((child) => fenKey(child.fen) === playedKey);
@@ -1167,17 +1383,11 @@ function onUserMove(orig, dest) {
 
     setTimeout(() => {
       if (!state.quizActive) return;
-      ground.set({
-        fen: before.fen,
-        turnColor: turnColorOf(before.fen),
-        lastMove: getLastMove(before),
-        movable: { dests: computeDests(before.fen) },
-      });
-    }, 500);
+      restoreBoardTo(before.fen, getLastMove(before));
+    }, 900);
     return;
   }
 
-  // Correct move. Continue along the hit node (not forced to the mainline).
   state.quizCorrectCount += 1;
   playMove(whiteNode.san);
   state.selectedNodeId = whiteNode.id;
@@ -1195,9 +1405,6 @@ function onUserMove(orig, dest) {
     : 'Correct!';
   setQuizStatus(whiteLine, 'success');
 
-  // Termination "last move is White": the hit node has no reply to play, so the
-  // line ends here without a Black move. (The other termination, "last move is
-  // Black", is handled inside presentBlackReply)
   const blackNode = mainlineChild(whiteNode);
   if (!blackNode) {
     endQuiz(quizSummaryMessage(), 'success');
@@ -1207,38 +1414,33 @@ function onUserMove(orig, dest) {
   setTimeout(() => {
     if (!state.quizActive) return;
     presentBlackReply(whiteNode, blackNode, whiteLine);
-  }, 350);
+  }, 700);
 }
 
-// Play Black's reply `blackNode` (a child of `whiteNode`) on the board and show
-// the combined feedback. Black auto-replies with the mainline, and
-// any sibling replies are offered as buttons that swap in that reply.
-function presentBlackReply(whiteNode, blackNode, whiteLine) {
-  playMove(blackNode.san);
-  state.selectedNodeId = blackNode.id;
+function playQuizReply(node) {
+  playMove(node.san);
+  state.selectedNodeId = node.id;
 
-  const terminal = blackNode.children.length === 0;
+  const terminal = node.children.length === 0;
   ground.set({
-    fen: blackNode.fen,
-    turnColor: turnColorOf(blackNode.fen),
-    lastMove: getLastMove(blackNode),
-    movable: { dests: terminal ? new Map() : computeDests(blackNode.fen) },
+    fen: node.fen,
+    turnColor: turnColorOf(node.fen),
+    lastMove: getLastMove(node),
+    movable: { dests: terminal ? new Map() : computeDests(node.fen) },
   });
 
-  // The mainline Black reply ends the line — it has been played on the
-  // board above, now finish with the summary.
-  if (terminal) {
-    endQuiz(quizSummaryMessage(), 'success');
-    return;
-  }
+  if (terminal) endQuiz(quizSummaryMessage(), 'success');
+  return terminal;
+}
 
-  // Black's other replies (relative to the one just played). Clicking one swaps
-  // it in; it does not count as a quizzed move.
+function presentBlackReply(whiteNode, blackNode, whiteLine) {
+  if (playQuizReply(blackNode)) return;
+
   const blackAlts = whiteNode.children
     .map((id) => state.nodesById.get(id))
     .filter((child) => child.id !== blackNode.id);
 
-  const parts = [`${whiteLine}\nBlack played ${sanLabel(blackNode)}.`];
+  const parts = [`${whiteLine}\nBlack played ${sanLabelSentence(blackNode)}`];
   if (blackAlts.length) {
     parts.push('\nBlack could also play: ');
     blackAlts.forEach((alt) => {
@@ -1246,9 +1448,7 @@ function presentBlackReply(whiteNode, blackNode, whiteLine) {
         button: sanLabel(alt),
         onClick: () => {
           if (!state.quizActive) return;
-          // Undo the displayed reply and play the chosen alternative instead by
-          // re-presenting from `whiteNode`; afterwards it is White to move again
-          // (or the line ends if the alternative is terminal).
+          // Swap in the alternative by re-presenting from `whiteNode`.
           presentBlackReply(whiteNode, alt, whiteLine);
         },
       });
@@ -1257,15 +1457,14 @@ function presentBlackReply(whiteNode, blackNode, whiteLine) {
   setQuizStatusContent(parts, 'success');
 }
 
-// Opening feedback when the quiz starts on Black's move: "Black played X. Find
-// White's best move." plus buttons for Black's sibling replies. The board for
-// `blackNode` is set up by the caller (startQuiz) or swapOpeningBlackReply.
+// Opening feedback when the quiz starts on Black's move, plus buttons for
+// Black's sibling replies. The board itself is set up by the caller.
 function renderOpeningBlackStatus(startNode, blackNode) {
   const blackAlts = startNode.children
     .map((id) => state.nodesById.get(id))
     .filter((child) => child.id !== blackNode.id);
 
-  const parts = [`Black played ${sanLabel(blackNode)}. Find White's best move.`];
+  const parts = [`Black played ${sanLabelSentence(blackNode)} Find White's best move.`];
   if (blackAlts.length) {
     parts.push('\nBlack could also play: ');
     blackAlts.forEach((alt) => {
@@ -1278,32 +1477,15 @@ function renderOpeningBlackStatus(startNode, blackNode) {
   setQuizStatusContent(parts, 'info');
 }
 
-// Swap the opening Black reply for `alt` (a sibling of the displayed reply).
-// Stays in quiz mode and does not count as a quizzed move; afterwards it is
-// still White to move (or the line ends if the alternative is terminal).
+// Swap the opening Black reply for `alt`. Doesn't count as a quizzed move.
 function swapOpeningBlackReply(startNode, alt) {
   if (!state.quizActive) return;
-  playMove(alt.san);
-  state.selectedNodeId = alt.id;
-
-  const terminal = alt.children.length === 0;
-  ground.set({
-    fen: alt.fen,
-    turnColor: turnColorOf(alt.fen),
-    lastMove: getLastMove(alt),
-    movable: { dests: terminal ? new Map() : computeDests(alt.fen) },
-  });
-
-  if (terminal) {
-    endQuiz(quizSummaryMessage(), 'success');
-    return;
-  }
+  if (playQuizReply(alt)) return;
   renderOpeningBlackStatus(startNode, alt);
 }
 
-// Build an index from a normalized position key to every chapter node that
-// reaches that position, so a searched PGN/FEN can be matched regardless of
-// which chapter (or how many chapters) reach it.
+// Index normalized position key -> every chapter node reaching it, so a
+// searched PGN/FEN can match regardless of which chapter(s) reach it.
 function buildFenIndex(repertoire) {
   const index = new Map();
   for (const chapter of repertoire.chapters) {
@@ -1316,16 +1498,11 @@ function buildFenIndex(repertoire) {
   return index;
 }
 
-// Normalize a FEN to its position-identifying fields: piece placement, side
-// to move, castling rights, and en-passant target square.
-//
-// The en-passant field is re-derived rather than trusted, because different
-// chess libraries disagree about it: python-chess (used to export the
-// repertoire) writes the target square only when a legal en-passant capture
-// actually exists, while chess.js (used to parse searched PGN/FEN) writes it
-// after any double pawn push. Without this, the same position can produce two
-// different keys and a real match is missed. We keep the square only when a
-// pawn of the side to move can legally capture onto it.
+// Normalize a FEN to its position-identifying fields (placement, turn,
+// castling, en-passant). The en-passant field is re-derived rather than
+// trusted because python-chess (repertoire export) only sets it when a legal
+// capture exists, while chess.js (searched PGN/FEN) sets it after any double
+// pawn push — trusting it would split one position into two different keys.
 function fenKey(fen) {
   const [placement, turn, castle, ep] = fen.trim().split(/\s+/);
   return [placement, turn, castle, normalizeEpSquare(placement, turn, ep)].join(' ');
@@ -1362,9 +1539,8 @@ function expandPlacement(placement) {
 }
 
 // Distance between two fenKey strings: board Hamming distance plus small
-// penalties for side-to-move, castling-rights, and en-passant differences.
-// Lower = more similar. Only meaningful as a relative ranking, not an exact
-// "moves away" count.
+// penalties for side-to-move/castling/en-passant differences. Lower = more
+// similar; only meaningful as a relative ranking, not a "moves away" count.
 function positionDistance(keyA, keyB) {
   const [placementA, turnA, castleA, epA] = keyA.split(' ');
   const [placementB, turnB, castleB, epB] = keyB.split(' ');
@@ -1378,8 +1554,13 @@ function positionDistance(keyA, keyB) {
 
   if (turnA !== turnB) distance += 2;
 
+  // Charge castling-rights loss only while the king hasn't moved — once it has,
+  // the Hamming part already counts the king/rook squares.
+  const sameWhiteKing = squaresA.indexOf('K') === squaresB.indexOf('K');
+  const sameBlackKing = squaresA.indexOf('k') === squaresB.indexOf('k');
   for (const flag of 'KQkq') {
-    if (castleA.includes(flag) !== castleB.includes(flag)) distance += 1;
+    const sameKing = flag === 'K' || flag === 'Q' ? sameWhiteKing : sameBlackKing;
+    if (sameKing && castleA.includes(flag) !== castleB.includes(flag)) distance += 1;
   }
 
   if (epA !== epB) distance += 1;
@@ -1389,8 +1570,7 @@ function positionDistance(keyA, keyB) {
 
 // Find the indexed position closest (by positionDistance) to `targetKey`.
 // Returns { key, entries, distance }, or null if state.fenIndex is empty.
-// Ties go to the first-encountered key (repertoire chapter/node order),
-// consistent with the existing "first match wins" convention.
+// Ties go to the first-encountered key.
 function findClosestPosition(targetKey) {
   let best = null;
   for (const [key, entries] of state.fenIndex) {
@@ -1405,9 +1585,8 @@ function findClosestPosition(targetKey) {
 // Parse `input` as a FEN string. Returns the normalized FEN on success, or
 // null if `input` is not a valid FEN.
 function tryParseFen(input) {
-  // A FEN's piece-placement field always contains '/' rank separators; PGN move
-  // text never does. Requiring '/' keeps a lone legal move (e.g. "e4") from
-  // being mis-detected as a FEN by a lenient Chess() constructor.
+  // FEN placement always has '/' separators; PGN move text never does — this
+  // keeps a lone move like "e4" from being mis-detected as a FEN.
   if (!input.includes('/')) return null;
   try {
     return new Chess(input).fen();
@@ -1416,9 +1595,8 @@ function tryParseFen(input) {
   }
 }
 
-// Parse `input` as PGN move text and play it out from the standard starting
-// position. Returns the resulting FEN on success, or null if `input` is not
-// a valid, non-empty move sequence.
+// Parse `input` as PGN move text from the starting position. Returns the
+// resulting FEN, or null if `input` isn't a valid, non-empty move sequence.
 function tryParsePgn(input) {
   try {
     const chess = new Chess();
@@ -1428,6 +1606,12 @@ function tryParsePgn(input) {
   } catch {
     return null;
   }
+}
+
+// Suffix noting how many other repertoire entries reach the same position.
+function alsoReachedSuffix(rest) {
+  if (rest.length === 0) return '';
+  return ` (Also reached by ${pluralize(rest.length, 'other position', 'other positions')} in the repertoire.)`;
 }
 
 function runPositionSearch(rawInput) {
@@ -1454,12 +1638,9 @@ function runPositionSearch(rawInput) {
       const [match, ...rest] = closest.entries;
       selectChapter(match.chapterId, match.nodeId);
 
-      let message =
+      const message =
         `Valid ${kind}, but no exact match was found. Jumped to the closest similar position ` +
-        `in "${state.chapter.title}".`;
-      if (rest.length > 0) {
-        message += ` (Also reached by ${rest.length} other position${rest.length === 1 ? '' : 's'} in the repertoire.)`;
-      }
+        `in "${state.chapter.title}".${alsoReachedSuffix(rest)}`;
       setSearchStatus(message, 'similar');
       return;
     }
@@ -1471,10 +1652,7 @@ function runPositionSearch(rawInput) {
   const [match, ...rest] = matches;
   selectChapter(match.chapterId, match.nodeId);
 
-  let message = `Found matching position from ${kind} — jumped to "${state.chapter.title}".`;
-  if (rest.length > 0) {
-    message += ` (Also reached by ${rest.length} other position${rest.length === 1 ? '' : 's'} in the repertoire.)`;
-  }
+  const message = `Found matching position from ${kind} — jumped to "${state.chapter.title}".${alsoReachedSuffix(rest)}`;
   setSearchStatus(message, 'success');
 }
 
@@ -1506,6 +1684,9 @@ function refreshExportPgn() {
 const COPIED_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>';
 
+let copyIconResetTimer = 0;
+let copyOriginalIcon = null;
+
 async function copyExportPgn() {
   const text = els.exportText.value;
   if (!text) return;
@@ -1517,19 +1698,18 @@ async function copyExportPgn() {
     document.execCommand('copy');
   }
 
-  const original = els.copyPgn.innerHTML;
+  // Capture the pristine icon once — a re-click while the checkmark is
+  // showing must not capture the checkmark as the icon to restore.
+  if (copyOriginalIcon === null) copyOriginalIcon = els.copyPgn.innerHTML;
   els.copyPgn.innerHTML = COPIED_ICON;
-  setTimeout(() => {
-    els.copyPgn.innerHTML = original;
+  clearTimeout(copyIconResetTimer);
+  copyIconResetTimer = setTimeout(() => {
+    els.copyPgn.innerHTML = copyOriginalIcon;
   }, 1200);
 }
 
 function setDescription(text) {
   els.descriptionText.textContent = text;
-  // Repertoire acknowledgements show on the home page, including while the
-  // user is free-playing moves there (the scratch chapter) — only hide once a
-  // real repertoire chapter is open.
-  els.notesAck.hidden = Boolean(state.chapter) && state.chapter.id !== SCRATCH_ID;
 }
 
 function showLoadError(error) {

@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
-"""Export curated Smith-Morra PGN files to a compact browser JSON tree."""
+"""Export PGN files to a compact browser JSON tree.
+
+Each source PGN repurposes a few standard fields as export conventions:
+  - The "Black" header holds the chapter title.
+  - The root comment holds the chapter description.
+  - "[%entry]" marks the starting position.
+All three are required — there is no generated fallback.
+"""
 
 from __future__ import annotations
 
+import io
 import json
 import re
 import sys
@@ -16,7 +24,7 @@ for local_package_dir in (ROOT / ".pydeps", ROOT / ".python-packages"):
 
 try:
     import chess.pgn
-except ImportError as exc:  # pragma: no cover - exercised by environment setup
+except ImportError as exc:
     raise SystemExit(
         "Missing dependency: python-chess."
     ) from exc
@@ -24,7 +32,7 @@ except ImportError as exc:  # pragma: no cover - exercised by environment setup
 
 PGN_DIR = ROOT / "data" / "pgn"
 OUTPUT_PATH = ROOT / "data" / "repertoire.json"
-REQUIRED_HEADERS = ("Event", "White", "Black", "Result")
+REQUIRED_HEADERS = ("Black",)
 COMMENT_LIMIT = 320
 
 # Standard PGN move-quality suffix annotations (Numeric Annotation Glyphs).
@@ -37,16 +45,26 @@ NAG_SUFFIXES = {
     chess.pgn.NAG_DUBIOUS_MOVE: "?!",
 }
 
+ENTRY_MARKER_RE = re.compile(r"\[%entry\]\s*")
+
+
+def extract_entry_marker(comment: str) -> tuple[bool, str]:
+    match = ENTRY_MARKER_RE.search(comment)
+    if not match:
+        return False, comment
+    return True, comment[: match.start()] + comment[match.end() :]
+
 
 @dataclass(frozen=True)
 class ExportContext:
     chapter_id: str
     nodes: list[dict]
+    entry: list
 
 
 def main() -> int:
     chapters = []
-    for pgn_path in sorted(PGN_DIR.glob("smg_ch*.pgn"), key=chapter_sort_key):
+    for pgn_path in sorted(PGN_DIR.glob("ch*.pgn"), key=chapter_sort_key):
         chapters.append(export_chapter(pgn_path))
 
     if not chapters:
@@ -58,10 +76,24 @@ def main() -> int:
     return 0
 
 
+HEADER_LINE_RE = re.compile(r'^\[\w+ ".*"\]\s*$')
+
+
+def normalized_pgn_text(pgn_path: Path) -> str:
+    # Drop blank lines in the movetext: python-chess's reader treats a blank
+    # line as a game separator.
+    lines = pgn_path.read_text(encoding="utf-8").splitlines()
+    header_end = 0
+    while header_end < len(lines) and HEADER_LINE_RE.match(lines[header_end]):
+        header_end += 1
+    body = [line for line in lines[header_end:] if line.strip()]
+    return "\n".join(lines[:header_end] + [""] + body) + "\n"
+
+
 def export_chapter(pgn_path: Path) -> dict:
-    with pgn_path.open("r", encoding="utf-8") as handle:
-        game = chess.pgn.read_game(handle)
-        trailing = handle.read().strip()
+    handle = io.StringIO(normalized_pgn_text(pgn_path))
+    game = chess.pgn.read_game(handle)
+    trailing = handle.read().strip()
 
     if game is None:
         raise ValueError(f"{pgn_path.name}: no PGN game found")
@@ -75,6 +107,7 @@ def export_chapter(pgn_path: Path) -> dict:
     chapter_id = chapter_id_from_path(pgn_path)
     root_board = game.board()
     root_id = f"{chapter_id}-root"
+    root_has_entry, root_comment = extract_entry_marker(game.comment)
     context = ExportContext(
         chapter_id=chapter_id,
         nodes=[
@@ -89,16 +122,21 @@ def export_chapter(pgn_path: Path) -> dict:
                 "isMainline": True,
             }
         ],
+        entry=[root_id if root_has_entry else None],
     )
 
     walk_variations(game, root_board, root_id, context, parent_is_mainline=True)
+
+    if context.entry[0] is None:
+        raise ValueError(f"{pgn_path.name}: no [%entry] marker found")
 
     return {
         "id": chapter_id,
         "title": game.headers["Black"],
         "sourcePgn": pgn_path.name,
         "rootFen": root_board.fen(),
-        "description": chapter_description(pgn_path, game),
+        "description": chapter_description(pgn_path, root_comment),
+        "openingEntryNodeId": context.entry[0],
         "nodes": context.nodes,
     }
 
@@ -125,7 +163,13 @@ def walk_variations(parent_node, board, parent_id: str, context: ExportContext, 
             "isMainline": child_is_mainline,
         }
 
-        comment = normalize_comment(child_node.comment)
+        raw_comment = child_node.comment
+        if context.entry[0] is None:
+            has_entry, raw_comment = extract_entry_marker(raw_comment)
+            if has_entry:
+                context.entry[0] = child_id
+
+        comment = normalize_comment(raw_comment)
         if comment:
             payload["description"] = comment
 
@@ -139,7 +183,7 @@ def walk_variations(parent_node, board, parent_id: str, context: ExportContext, 
 
 
 def validate_headers(pgn_path: Path, game) -> None:
-    missing = [header for header in REQUIRED_HEADERS if not game.headers.get(header)]
+    missing = [header for header in REQUIRED_HEADERS if game.headers.get(header, "?") == "?"]
     if missing:
         raise ValueError(f"{pgn_path.name}: missing required headers: {', '.join(missing)}")
 
@@ -149,23 +193,24 @@ def validate_headers(pgn_path: Path, game) -> None:
         raise ValueError(f"{pgn_path.name}: FEN and SetUp \"1\" must be provided together")
 
 
+CHAPTER_FILENAME_RE = re.compile(r"ch(\d+)\.pgn")
+
+
 def chapter_id_from_path(pgn_path: Path) -> str:
-    match = re.search(r"smg_ch(\d+)\.pgn$", pgn_path.name)
+    match = CHAPTER_FILENAME_RE.fullmatch(pgn_path.name)
     if not match:
         raise ValueError(f"Unexpected PGN filename: {pgn_path.name}")
     return f"ch{int(match.group(1))}"
 
 
 def chapter_sort_key(pgn_path: Path) -> int:
-    return int(re.search(r"smg_ch(\d+)\.pgn$", pgn_path.name).group(1))
+    return int(CHAPTER_FILENAME_RE.fullmatch(pgn_path.name).group(1))
 
 
-def chapter_description(pgn_path: Path, game) -> str:
-    """Chapter description: the PGN game's root comment (the curated source of
-    truth for chapter-specific prose). Required — there is no generated fallback."""
-    comment = " ".join(game.comment.split())
+def chapter_description(pgn_path: Path, root_comment: str) -> str:
+    comment = " ".join(root_comment.split())
     if not comment:
-        raise ValueError(f"{pgn_path.name}: missing a root comment to use as the chapter description")
+        raise ValueError(f"{pgn_path.name}: missing root comment")
     return comment
 
 
@@ -174,7 +219,7 @@ def normalize_comment(comment: str) -> str:
     if not text:
         return ""
     if len(text) > COMMENT_LIMIT:
-        raise ValueError("PGN comment too long")
+        raise ValueError(f"PGN comment too long ({len(text)} > {COMMENT_LIMIT}): {text!r}")
     return text
 
 
