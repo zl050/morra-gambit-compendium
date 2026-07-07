@@ -3,14 +3,16 @@ import { copyFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 function copyRepertoireData() {
-  const source = resolve('data/repertoire.json');
-  const target = resolve('dist/data/repertoire.json');
+  const files = ['data/repertoire.json', 'data/cloud-evals.json'];
 
   return {
     name: 'copy-repertoire-data',
     closeBundle() {
-      mkdirSync(dirname(target), { recursive: true });
-      copyFileSync(source, target);
+      for (const file of files) {
+        const target = resolve('dist', file);
+        mkdirSync(dirname(target), { recursive: true });
+        copyFileSync(resolve(file), target);
+      }
     },
   };
 }

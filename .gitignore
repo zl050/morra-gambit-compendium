@@ -9,8 +9,8 @@ dist/
 .python-packages/
 .tools/
 
-# Local Claude Code settings (machine-specific)
-.claude/settings.local.json
+# Local Claude Code / editor settings (machine-specific)
+.claude/
 
 # OS / editor cruft
 .DS_Store
