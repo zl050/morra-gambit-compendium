@@ -131,7 +131,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def save(evals: dict) -> None:
-    OUTPUT_PATH.write_text(json.dumps(evals, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    OUTPUT_PATH.write_text(json.dumps(evals, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

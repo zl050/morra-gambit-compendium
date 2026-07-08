@@ -5,6 +5,8 @@ by chapter, on an interactive board. Select a chapter or search by PGN/FEN, step
 through the lines, consult pre-fetched cloud engine evals, and practise White's
 moves in quiz mode.
 
+![Website preview](.github/images/screenshot.png)
+
 ## File structure
 
 ```

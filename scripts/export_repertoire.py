@@ -71,7 +71,7 @@ def main() -> int:
         raise SystemExit(f"No PGN files found in {PGN_DIR}")
 
     payload = {"chapters": chapters}
-    OUTPUT_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    OUTPUT_PATH.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Exported {len(chapters)} chapters to {OUTPUT_PATH.relative_to(ROOT)}")
     return 0
 
