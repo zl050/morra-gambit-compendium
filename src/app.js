@@ -49,6 +49,7 @@ const els = {
   nextMove: document.querySelector('#next-move'),
   endLine: document.querySelector('#end-line'),
   tree: document.querySelector('#tree'),
+  forkPanel: document.querySelector('#fork-panel'),
   flipBoard: document.querySelector('#flip-board'),
   settingsToggle: document.querySelector('#settings-toggle'),
   settingsMenu: document.querySelector('#settings-menu'),
@@ -85,6 +86,8 @@ const state = {
   chapter: null,
   nodesById: new Map(),
   selectedNodeId: null,
+  // Index of the armed fork option among the selected node's children.
+  forkIndex: 0,
   fenIndex: new Map(),
   quizActive: false,
   engineEnabled: false,
@@ -300,7 +303,6 @@ function initSettings() {
     applySetting(setting, readSetting(setting));
   }
 
-  // Option clicks: apply and persist the chosen value for any setting.
   els.settingsMenu.addEventListener('click', (event) => {
     const opt = event.target.closest('.settings-opt');
     if (!opt) return;
@@ -313,7 +315,6 @@ function initSettings() {
     }
   });
 
-  // Open / close the dropdown.
   const closeMenu = () => {
     els.settingsMenu.hidden = true;
     els.settingsToggle.setAttribute('aria-expanded', 'false');
@@ -336,6 +337,64 @@ function initSettings() {
       els.settingsToggle.focus();
     }
   });
+}
+
+const SHORTCUTS = {
+  ArrowLeft: selectPrevious,
+  ArrowRight: selectNext,
+  ArrowUp: () => moveFork(-1),
+  ArrowDown: () => moveFork(1),
+  f: () => ground.toggleOrientation(),
+  l: toggleEnginePanel,
+};
+
+function selectedChildren() {
+  if (!state.chapter) return [];
+  return getSelectedNode().children.map((id) => state.nodesById.get(id));
+}
+
+function defaultForkIndex(node) {
+  const children = node.children.map((id) => state.nodesById.get(id));
+  if (children.length < 2) return 0;
+  const mainIdx = children.findIndex((child) => child.isMainline);
+  return mainIdx < 0 ? 0 : mainIdx;
+}
+
+function moveFork(direction) {
+  if (state.quizActive || !state.chapter) return;
+  const count = selectedChildren().length;
+  if (count < 2) return;
+  state.forkIndex = (state.forkIndex + direction + count) % count;
+  renderFork();
+}
+
+function armedChild() {
+  const children = selectedChildren();
+  if (children.length === 0) return null;
+  if (children.length < 2) return children[0];
+  return children[state.forkIndex] || children[0];
+}
+
+function renderFork() {
+  const panel = els.forkPanel;
+  if (!panel) return;
+  panel.textContent = '';
+
+  const children = state.quizActive ? [] : selectedChildren();
+  if (children.length < 2) {
+    panel.hidden = true;
+    return;
+  }
+
+  children.forEach((child, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `fork-option${index === state.forkIndex ? ' armed' : ''}`;
+    button.textContent = inlineLabel(child, true);
+    button.dataset.id = child.id;
+    panel.append(button);
+  });
+  panel.hidden = false;
 }
 
 async function init() {
@@ -385,6 +444,14 @@ async function init() {
     if (!button) return;
     const node = state.nodesById.get(button.dataset.id);
     if (!node || node.id === state.selectedNodeId) return;
+    playMove(node.san);
+    selectNode(node.id);
+  });
+  els.forkPanel.addEventListener('click', (event) => {
+    const button = event.target.closest('.fork-option');
+    if (!button) return;
+    const node = state.nodesById.get(button.dataset.id);
+    if (!node) return;
     playMove(node.san);
     selectNode(node.id);
   });
@@ -445,10 +512,17 @@ async function init() {
     { passive: false },
   );
   window.addEventListener('keydown', (event) => {
-    if (state.quizActive) return;
+    if (state.quizActive) {
+      if (event.key === 'Escape') endQuiz();
+      return;
+    }
     if (event.target instanceof Element && event.target.closest('input, textarea, select')) return;
-    if (event.key === 'ArrowLeft') selectPrevious();
-    if (event.key === 'ArrowRight') selectNext();
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const handler = SHORTCUTS[event.key.length === 1 ? event.key.toLowerCase() : event.key];
+    if (handler) {
+      event.preventDefault();
+      handler();
+    }
   });
   window.addEventListener('hashchange', restoreFromHash);
 }
@@ -505,6 +579,7 @@ function selectNode(nodeId, updateHash = true) {
 
   state.selectedNodeId = nodeId;
   const node = getSelectedNode();
+  state.forkIndex = defaultForkIndex(node);
   const description = node.description || state.chapter.description || GENERAL_DESCRIPTION;
 
   ground.set({
@@ -514,6 +589,7 @@ function selectNode(nodeId, updateHash = true) {
   });
   setDescription(description);
   updateTreeSelection(nodeId);
+  renderFork();
   updateNavigationState();
   if (!els.exportRow.hidden) refreshExportPgn();
   if (state.engineEnabled) showCloudEval(node.fen);
@@ -724,7 +800,7 @@ function selectPrevious() {
 function selectNext() {
   if (state.quizActive) return;
   if (!state.chapter) return;
-  const next = mainlineChild(getSelectedNode());
+  const next = armedChild();
   if (next) {
     playMove(next.san);
     selectNode(next.id);

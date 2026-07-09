@@ -10,6 +10,7 @@
   /* Dark-only accents default to aliases of the base vars, so every variable
      is declared here once and consumers never need var() fallback chains. */
   --surface-elevated: var(--surface);
+  --fork-bg: #dfe4eb;
   --edge-highlight: transparent;
   --tip-border: var(--border);
   --tip-bg: var(--surface);
@@ -48,6 +49,7 @@
   --bg: #0b0e14;
   --surface: #1d2430;
   --surface-elevated: #262e3b;
+  --fork-bg: #2f3a4b;
   --border: #2b3340;
   --border-strong: #3d4756;
   --muted: #9aa4b1;
@@ -595,8 +597,53 @@ body.resizing .board-resize {
 
 .tree-box {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
+}
+
+.fork-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--border-strong);
+}
+
+.fork-panel[hidden] {
+  display: none;
+}
+
+.fork-option {
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--fork-bg);
+  color: var(--mainline);
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fork-option:nth-child(odd) {
+  border-right: 1px solid var(--border-strong);
+}
+
+.fork-option:last-child,
+.fork-option:nth-child(odd):nth-last-child(2) {
+  border-bottom: 0;
+}
+
+.fork-option:hover {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.fork-option.armed {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.fork-panel:has(> .fork-option:not(.armed):hover) > .fork-option.armed {
+  background: var(--fork-bg);
+  color: var(--mainline);
 }
 
 .engine-panel {
@@ -726,7 +773,6 @@ body.resizing .board-resize {
   display: contents;
 }
 
-/* Bubble tooltip anchored above the info button. */
 .engine-info-tip {
   position: absolute;
   top: 50px;
