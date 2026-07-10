@@ -15,6 +15,9 @@ const GENERAL_DESCRIPTION =
 // "closest similar position" — roughly "about one move away"
 const MAX_SIMILAR_DISTANCE = 6;
 
+// Exact hits at or below this ply are too shallow to anchor a deviation report.
+const MIN_DEVIATION_ANCHOR_PLY = 6;
+
 const QUIZ_DESCRIPTION = 'White to move: seize the initiative with precise attack!';
 
 // In-memory "scratch" chapter created the first time a user plays a move on the
@@ -1296,8 +1299,8 @@ function endQuiz(message, kind) {
 
   els.quizMode.querySelector('.tool-label').textContent = 'Quiz mode';
   els.quizMode.setAttribute('aria-expanded', 'false');
-  els.quizMode.setAttribute('aria-label', "Quiz mode — practice White's moves from here");
-  els.quizMode.title = "Quiz mode — practice White's moves from here";
+  els.quizMode.setAttribute('aria-label', 'Quiz mode');
+  els.quizMode.title = 'Quiz mode';
   els.quizModeIcon.style.display = '';
   els.quizExitIcon.style.display = 'none';
 
@@ -1658,11 +1661,7 @@ function findClosestPosition(targetKey) {
   return best;
 }
 
-// Parse `input` as a FEN string. Returns the normalized FEN on success, or
-// null if `input` is not a valid FEN.
 function tryParseFen(input) {
-  // FEN placement always has '/' separators; PGN move text never does — this
-  // keeps a lone move like "e4" from being mis-detected as a FEN.
   if (!input.includes('/')) return null;
   try {
     return new Chess(input).fen();
@@ -1672,64 +1671,107 @@ function tryParseFen(input) {
 }
 
 // Parse `input` as PGN move text from the starting position. Returns the
-// resulting FEN, or null if `input` isn't a valid, non-empty move sequence.
+// verbose move list, or null if `input` isn't a valid, non-empty sequence.
 function tryParsePgn(input) {
   try {
     const chess = new Chess();
     chess.loadPgn(input);
-    if (chess.history().length === 0) return null;
-    return chess.fen();
+    const moves = chess.history({ verbose: true });
+    return moves.length === 0 ? null : moves;
   } catch {
     return null;
   }
 }
 
-// Suffix noting how many other repertoire entries reach the same position.
 function alsoReachedSuffix(rest) {
   if (rest.length === 0) return '';
-  return ` (Also reached by ${pluralize(rest.length, 'other position', 'other positions')} in the repertoire.)`;
+  return ` (Also reached by ${pluralize(rest.length, 'other position', 'other positions')} in the compendium.)`;
 }
 
 function runPositionSearch(rawInput) {
   const input = rawInput.trim();
   if (!input) {
-    setSearchStatus('Enter a PGN move sequence or FEN position to search.', 'info');
+    setSearchStatus('Enter partial/full game move sequence (PGN) or position (FEN).', 'info');
     return;
   }
 
   const fenResult = tryParseFen(input);
-  const kind = fenResult !== null ? 'FEN' : 'PGN';
-  const fen = fenResult !== null ? fenResult : tryParsePgn(input);
-
-  if (fen === null) {
-    setSearchStatus('Not a valid PGN or FEN. Please enter a valid PGN move sequence or FEN position.', 'error');
+  if (fenResult !== null) {
+    runFenSearch(fenResult);
     return;
   }
 
-  const searchKey = fenKey(fen);
-  const matches = state.fenIndex.get(searchKey) || [];
-  if (matches.length === 0) {
-    const closest = findClosestPosition(searchKey);
-    if (closest !== null && closest.distance <= MAX_SIMILAR_DISTANCE) {
-      const [match, ...rest] = closest.entries;
-      selectChapter(match.chapterId, match.nodeId);
-
-      const message =
-        `Valid ${kind}, but no exact match was found. Jumped to the closest similar position ` +
-        `in "${state.chapter.title}".${alsoReachedSuffix(rest)}`;
-      setSearchStatus(message, 'similar');
-      return;
-    }
-
-    setSearchStatus(`Valid ${kind}, but no matching position was found in the repertoire.`, 'error');
+  const moves = tryParsePgn(input);
+  if (moves === null) {
+    setSearchStatus('Invalid PGN or FEN.', 'error');
     return;
   }
 
-  const [match, ...rest] = matches;
+  runGameSearch(moves);
+}
+
+function reportExactMatch(entries) {
+  const [match, ...rest] = entries;
   selectChapter(match.chapterId, match.nodeId);
+  setSearchStatus(
+    `Found matching position in "${state.chapter.title}".${alsoReachedSuffix(rest)}`,
+    'success',
+  );
+}
 
-  const message = `Found matching position from ${kind} — jumped to "${state.chapter.title}".${alsoReachedSuffix(rest)}`;
-  setSearchStatus(message, 'success');
+function trySimilarJump(searchKey) {
+  const closest = findClosestPosition(searchKey);
+  if (closest === null || closest.distance > MAX_SIMILAR_DISTANCE) return false;
+  const [match, ...rest] = closest.entries;
+  selectChapter(match.chapterId, match.nodeId);
+  const message =
+    `No exact match was found. Jumped to the closest similar position ` +
+    `in "${state.chapter.title}".${alsoReachedSuffix(rest)}`;
+  setSearchStatus(message, 'similar');
+  return true;
+}
+
+function runFenSearch(fen) {
+  const searchKey = fenKey(fen);
+  const matches = state.fenIndex.get(searchKey);
+  if (matches) {
+    reportExactMatch(matches);
+    return;
+  }
+  if (trySimilarJump(searchKey)) return;
+  setSearchStatus('No matching position was found in the compendium.', 'error');
+}
+
+// Match the pasted game ply by ply against the cross-chapter fenIndex, so
+// transpositions count. The final position decides the outcome; a game that
+// left the compendium is anchored at its last exact hit when deep enough.
+function runGameSearch(moves) {
+  let lastExact = null; // { entries, index } of the latest exact hit
+
+  for (let i = 0; i < moves.length; i++) {
+    const entries = state.fenIndex.get(fenKey(moves[i].after));
+    if (entries) lastExact = { entries, index: i };
+  }
+
+  if (lastExact && lastExact.index === moves.length - 1) {
+    reportExactMatch(lastExact.entries);
+    return;
+  }
+
+  if (trySimilarJump(fenKey(moves[moves.length - 1].after))) return;
+
+  if (lastExact && lastExact.index + 1 > MIN_DEVIATION_ANCHOR_PLY) {
+    const [match, ...rest] = lastExact.entries;
+    selectChapter(match.chapterId, match.nodeId);
+    const lastBookMove = inlineLabel(getSelectedNode(), true);
+    setSearchStatus(
+      `Matched up to ${lastBookMove} in "${state.chapter.title}".${alsoReachedSuffix(rest)}`,
+      'similar',
+    );
+    return;
+  }
+
+  setSearchStatus('No matching position was found in the compendium.', 'error');
 }
 
 function setSearchStatus(message, kind) {
