@@ -1051,6 +1051,7 @@ body.resizing .board-resize {
 
 .tree {
   overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 .notation-table {
@@ -1296,6 +1297,10 @@ body.resizing .board-resize {
 
   .tree {
     min-height: 260px;
+  }
+
+  .repertoire-controls {
+    order: -1;
   }
 
   .board-frame {
