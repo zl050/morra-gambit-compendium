@@ -8,6 +8,7 @@ dist/
 .pydeps/
 .python-packages/
 .tools/
+__pycache__/
 
 # Local Claude Code / editor settings (machine-specific)
 .claude/

@@ -11,9 +11,11 @@ moves in quiz mode.
 
 ```
 data/
-  chapters/            curated PGN source files — the editable source of truth
+  chapters/            curated repertoire PGN source files
+  games/               model game PGN source files
 scripts/
   export_chapters.py          data/chapters/ -> data/chapters.json
+  export_games.py             data/games/ -> data/games.json
   fetch_cloud_evals.py        data/chapters.json -> data/cloud-evals.json
 src/                   viewer frontend: app logic, styles, piece set, sound effects
 public/                static assets
@@ -29,11 +31,12 @@ Requires [pnpm](https://pnpm.io/) and Python.
 python -m pip install python-chess
 pnpm install
 python scripts/export_chapters.py
+python scripts/export_games.py
 python scripts/fetch_cloud_evals.py
 pnpm run dev
 ```
 
-After editing a PGN file, run both scripts to regenerate the data files.
+After editing a PGN file, rerun the export scripts to regenerate the data files.
 
 ## License & attribution
 
