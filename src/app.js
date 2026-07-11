@@ -24,22 +24,17 @@ const QUIZ_DESCRIPTION = 'White to move: seize the initiative with precise attac
 // home page (no real chapter open).
 const SCRATCH_ID = '__scratch__';
 
-const BOARD_THEMES = ['blue', 'brown'];
-
 // "Display" menu settings persisted to localStorage.
 const SETTING_KEYS = {
   appearance: 'smg:appearance',
-  board: 'smg:board-theme',
   pieces: 'smg:pieces',
 };
 const SETTING_VALUES = {
   appearance: ['light', 'dark'],
-  board: BOARD_THEMES,
   pieces: ['cburnett', 'merida'],
 };
 const SETTING_DEFAULTS = {
   appearance: 'light',
-  board: 'blue',
   pieces: 'cburnett',
 };
 
@@ -245,10 +240,9 @@ function setupBoardResize() {
   observeBoard();
 }
 
-// Settings menu — Appearance, Board, and Pieces. All three persist to
-// localStorage (SETTING_KEYS) and apply a class on load:
+// Settings menu — Appearance and Pieces. Both persist to localStorage
+// (SETTING_KEYS) and apply a class on load:
 //   Appearance → `appearance-dark` on <html> (dark color palette)
-//   Board      → `theme-*` on <html> (board colors + brown nav/grip)
 //   Pieces     → `pieces-merida` on #board (swaps the piece SVGs)
 
 function selectOption(setting, value) {
@@ -263,14 +257,6 @@ function selectOption(setting, value) {
   for (const icon of row.querySelectorAll('.settings-row-icon .ic')) {
     icon.classList.toggle('is-shown', icon.dataset.value === value);
   }
-}
-
-function applyBoardTheme(theme) {
-  const root = document.documentElement;
-  for (const name of BOARD_THEMES) {
-    root.classList.toggle(`theme-${name}`, name === theme);
-  }
-  selectOption('board', theme);
 }
 
 function applyAppearance(value) {
@@ -294,8 +280,7 @@ function readSetting(setting) {
 }
 
 function applySetting(setting, value) {
-  if (setting === 'board') applyBoardTheme(value);
-  else if (setting === 'appearance') applyAppearance(value);
+  if (setting === 'appearance') applyAppearance(value);
   else if (setting === 'pieces') applyPieces(value);
   else selectOption(setting, value);
 }

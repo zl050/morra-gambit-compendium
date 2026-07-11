@@ -1,63 +1,19 @@
-/* Board color themes for chessground.
+/* Board color theme for chessground.
  *
- * We deliberately do NOT import chessground's bundled brown theme. Instead both
- * the default blue board and the classic brown board are defined here as
- * CSS-variable sets, selected by a `theme-blue` / `theme-brown` class on the
- * root <html> element (toggled by the Board option in the Display settings menu
- * in app.js, persisted to localStorage). Square base colors and interactive
- * highlights are all derived from these variables.
- * chessground.base.css (structure) and chessground.cburnett.css (pieces) are
- * still imported in app.js.
+ * We deliberately do NOT import chessground's bundled brown theme. Instead the
+ * blue board is defined here as a CSS-variable set on the root <html> element.
+ * Square base colors and interactive highlights are all derived from these
+ * variables. chessground.base.css (structure) and chessground.cburnett.css
+ * (pieces) are still imported in app.js.
  */
 
-:root.theme-blue {
+:root {
   --board-light: #dadee1;
   --board-dark: #8ca2ad;
   --board-last-move: rgba(255, 213, 79, 0.5);
   --board-selected: rgba(255, 170, 40, 0.55);
   --board-dest: rgba(20, 40, 80, 0.45);
   --board-dest-oc: rgba(20, 40, 80, 0.3);
-}
-
-:root.theme-brown {
-  --board-light: #f0d9b5;
-  --board-dark: #b58863;
-  --board-last-move: rgba(155, 199, 0, 0.41);
-  --board-selected: rgba(20, 85, 30, 0.5);
-  --board-dest: rgba(20, 85, 30, 0.5);
-  --board-dest-oc: rgba(20, 85, 0, 0.3);
-}
-
-/* light + brown */
-:root.theme-brown:not(.appearance-dark) {
-  --accent: #8c5a2a;
-  --accent-soft: #f2e0cc;
-}
-
-/* dark + brown */
-:root.appearance-dark.theme-brown {
-  color: #ecdccc;
-  background: #1b170f;
-  --bg: #1b170f;
-  --surface: #271f15;
-  --surface-elevated: #322617;
-  --fork-bg: #3d2f1c;
-  --panel: #1e1710;
-  --border: #463726;
-  --border-strong: #5a4732;
-  --edge-highlight: rgba(255, 235, 210, 0.05);
-  --switch-off-bg: #261D15;
-  --muted: #9a8a76;
-  --accent: #c8894e;
-  --accent-soft: #422b18;
-  --mainline: #ecdccc;
-  --description-fg: #b4a492;
-  --notation-num-bg: #17140d;
-  --notation-num-fg: #7a6a58;
-  --notation-move-fg: #c4b09a;
-  --sideline-fg: #7a6a58;
-  --tip-border: #6e5842;
-  --tip-bg: #3d2f1e;
 }
 
 /* Square base colors: a two-color checkerboard built from a 2x2-square conic
