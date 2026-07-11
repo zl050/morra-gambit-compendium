@@ -11,10 +11,10 @@ moves in quiz mode.
 
 ```
 data/
-  pgn/                 curated PGN source files — the editable source of truth
+  chapters/            curated PGN source files — the editable source of truth
 scripts/
-  export_repertoire.py        data/pgn/ -> data/repertoire.json
-  fetch_cloud_evals.py        data/repertoire.json -> data/cloud-evals.json
+  export_chapters.py          data/chapters/ -> data/chapters.json
+  fetch_cloud_evals.py        data/chapters.json -> data/cloud-evals.json
 src/                   viewer frontend: app logic, styles, piece set, sound effects
 public/                static assets
 index.html             page markup
@@ -28,7 +28,7 @@ Requires [pnpm](https://pnpm.io/) and Python.
 ```powershell
 python -m pip install python-chess
 pnpm install
-python scripts/export_repertoire.py
+python scripts/export_chapters.py
 python scripts/fetch_cloud_evals.py
 pnpm run dev
 ```

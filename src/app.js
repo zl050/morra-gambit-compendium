@@ -391,11 +391,11 @@ async function init() {
 
   try {
     const [response, evalsResponse] = await Promise.all([
-      fetch('./data/repertoire.json', { cache: 'no-cache' }),
+      fetch('./data/chapters.json', { cache: 'no-cache' }),
       fetch('./data/cloud-evals.json', { cache: 'no-cache' }).catch(() => null),
     ]);
     if (!response.ok) {
-      throw new Error(`Could not load repertoire.json (${response.status})`);
+      throw new Error(`Could not load chapters.json (${response.status})`);
     }
     if (evalsResponse?.ok) {
       try {
@@ -1816,7 +1816,7 @@ function setDescription(text) {
 }
 
 function showLoadError(error) {
-  setDescription(`Unable to load repertoire: ${error.message} Run the export script to generate data/repertoire.json.`);
+  setDescription(`Unable to load repertoire: ${error.message} Run the export script to generate data/chapters.json.`);
 }
 
 function replaceHash(hash) {

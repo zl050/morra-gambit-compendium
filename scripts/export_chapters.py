@@ -30,8 +30,8 @@ except ImportError as exc:
     ) from exc
 
 
-PGN_DIR = ROOT / "data" / "pgn"
-OUTPUT_PATH = ROOT / "data" / "repertoire.json"
+PGN_DIR = ROOT / "data" / "chapters"
+OUTPUT_PATH = ROOT / "data" / "chapters.json"
 REQUIRED_HEADERS = ("Black",)
 COMMENT_LIMIT = 320
 

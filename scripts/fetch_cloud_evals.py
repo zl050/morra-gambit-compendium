@@ -27,7 +27,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-REPERTOIRE_PATH = ROOT / "data" / "repertoire.json"
+REPERTOIRE_PATH = ROOT / "data" / "chapters.json"
 OUTPUT_PATH = ROOT / "data" / "cloud-evals.json"
 
 API_URL = "https://lichess.org/api/cloud-eval"
