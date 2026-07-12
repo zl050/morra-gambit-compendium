@@ -16,7 +16,8 @@ data/
 scripts/
   export_chapters.py          data/chapters/ -> data/chapters.json
   export_games.py             data/games/ -> data/games.json
-  fetch_cloud_evals.py        data/chapters.json -> data/cloud-evals.json
+  fetch_cloud_evals.py        data/{chapters,games}.json -> data/cloud-evals.json
+  fill_local_evals.py         fill cloud misses with local Stockfish
 src/                   viewer frontend: app logic, styles, piece set, sound effects
 public/                static assets
 index.html             page markup
@@ -33,6 +34,7 @@ pnpm install
 python scripts/export_chapters.py
 python scripts/export_games.py
 python scripts/fetch_cloud_evals.py
+python scripts/fill_local_evals.py --engine path/to/stockfish
 pnpm run dev
 ```
 
