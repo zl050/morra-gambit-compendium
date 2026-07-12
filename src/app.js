@@ -530,7 +530,7 @@ async function init() {
 const CHAPTER_GROUP_BOUNDARIES = [
   { beforeId: 'ch1', label: 'Accepted' },
   { beforeId: 'ch11', label: 'Declined' },
-  { beforeId: 'g1', label: 'Model Games', separated: true },
+  { beforeId: 'g1', label: 'Model Games' },
 ];
 
 function renderChapterOptions() {
@@ -538,8 +538,6 @@ function renderChapterOptions() {
   for (const chapter of state.repertoire.chapters) {
     const boundary = CHAPTER_GROUP_BOUNDARIES.find((item) => item.beforeId === chapter.id);
     if (boundary) {
-      // <hr> is a native <select> separator where supported, ignored elsewhere.
-      if (boundary.separated) els.chapterSelect.append(document.createElement('hr'));
       target = document.createElement('optgroup');
       target.label = boundary.label;
       els.chapterSelect.append(target);
@@ -1842,8 +1840,20 @@ async function copyExportPgn() {
   }, 1200);
 }
 
+// Blank lines separate paragraphs; single newlines (pre-line) break lines
+// within one. A multi-paragraph game description opens with its metadata block.
 function setDescription(text) {
-  els.descriptionText.textContent = text;
+  const blocks = text.split(/\n{2,}/);
+  els.descriptionText.replaceChildren(
+    ...blocks.map((block, index) => {
+      const paragraph = document.createElement('p');
+      paragraph.textContent = block;
+      if (index === 0 && blocks.length > 1 && state.chapter?.kind === 'game') {
+        paragraph.className = 'desc-metadata';
+      }
+      return paragraph;
+    }),
+  );
 }
 
 function showLoadError(error) {

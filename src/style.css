@@ -230,7 +230,25 @@ select {
   font-size: 0.95rem;
   line-height: 1.55;
   text-wrap: pretty;
-  white-space: pre-line; /* model-game descriptions carry authored line breaks */
+  white-space: pre-line;
+}
+
+#description-text p {
+  margin: 0;
+}
+
+#description-text p + p {
+  margin-top: 0.6em;
+}
+
+#description-text .desc-metadata {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+#description-text .desc-metadata + p {
+  margin-top: 1.2em;
 }
 
 .source-panel {
@@ -333,7 +351,6 @@ select {
   text-overflow: ellipsis;
 }
 
-/* Looks disabled like a real button:disabled, but stays clickable. */
 .tool-bar.is-visually-disabled {
   cursor: default;
   opacity: 0.45;
