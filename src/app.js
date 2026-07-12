@@ -35,7 +35,7 @@ const SETTING_VALUES = {
 };
 const SETTING_DEFAULTS = {
   appearance: 'light',
-  pieces: 'cburnett',
+  pieces: 'merida',
 };
 
 const els = {
