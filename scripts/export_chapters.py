@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export PGN files to a compact browser JSON tree.
+"""Export chapter PGNs to a compact browser JSON tree.
 
 Each source PGN repurposes a few standard fields as export conventions:
   - The "Black" header holds the chapter title.
@@ -30,8 +30,8 @@ except ImportError as exc:
     ) from exc
 
 
-PGN_DIR = ROOT / "data" / "pgn"
-OUTPUT_PATH = ROOT / "data" / "repertoire.json"
+PGN_DIR = ROOT / "data" / "chapters"
+OUTPUT_PATH = ROOT / "data" / "chapters.json"
 REQUIRED_HEADERS = ("Black",)
 COMMENT_LIMIT = 320
 
@@ -60,6 +60,7 @@ class ExportContext:
     chapter_id: str
     nodes: list[dict]
     entry: list
+    comment_limit: int = COMMENT_LIMIT
 
 
 def main() -> int:
@@ -81,12 +82,18 @@ HEADER_LINE_RE = re.compile(r'^\[\w+ ".*"\]\s*$')
 
 def normalized_pgn_text(pgn_path: Path) -> str:
     # Drop blank lines in the movetext: python-chess's reader treats a blank
-    # line as a game separator.
+    # line as a game separator. Blank lines inside a {...} comment are kept, so
+    # a comment can carry intentional paragraph breaks.
     lines = pgn_path.read_text(encoding="utf-8").splitlines()
     header_end = 0
     while header_end < len(lines) and HEADER_LINE_RE.match(lines[header_end]):
         header_end += 1
-    body = [line for line in lines[header_end:] if line.strip()]
+    body = []
+    depth = 0
+    for line in lines[header_end:]:
+        if line.strip() or depth > 0:
+            body.append(line)
+        depth += line.count("{") - line.count("}")
     return "\n".join(lines[:header_end] + [""] + body) + "\n"
 
 
@@ -169,7 +176,7 @@ def walk_variations(parent_node, board, parent_id: str, context: ExportContext, 
             if has_entry:
                 context.entry[0] = child_id
 
-        comment = normalize_comment(raw_comment)
+        comment = normalize_comment(raw_comment, context.comment_limit)
         if comment:
             payload["description"] = comment
 
@@ -214,12 +221,12 @@ def chapter_description(pgn_path: Path, root_comment: str) -> str:
     return comment
 
 
-def normalize_comment(comment: str) -> str:
+def normalize_comment(comment: str, limit: int = COMMENT_LIMIT) -> str:
     text = " ".join(comment.split())
     if not text:
         return ""
-    if len(text) > COMMENT_LIMIT:
-        raise ValueError(f"PGN comment too long ({len(text)} > {COMMENT_LIMIT}): {text!r}")
+    if len(text) > limit:
+        raise ValueError(f"PGN comment too long ({len(text)} > {limit}): {text!r}")
     return text
 
 

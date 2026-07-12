@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch lichess cloud evals for every repertoire position into a static file.
+"""Fetch lichess cloud evals for every chapter and model-game position into a static file.
 
 The lichess cloud-eval endpoint rate-limits per-position queries too
 aggressively for live use, so the whole (finite) repertoire is fetched once
@@ -27,7 +27,8 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-REPERTOIRE_PATH = ROOT / "data" / "repertoire.json"
+CHAPTERS_PATH = ROOT / "data" / "chapters.json"
+GAMES_PATH = ROOT / "data" / "games.json"
 OUTPUT_PATH = ROOT / "data" / "cloud-evals.json"
 
 API_URL = "https://lichess.org/api/cloud-eval"
@@ -39,19 +40,27 @@ MAX_BACKOFFS = 3
 USER_AGENT = "morra-gambit-compendium build script (https://github.com/zl050/morra-gambit-compendium)"
 
 
-def main() -> int:
-    args = parse_args()
-    if not REPERTOIRE_PATH.exists():
-        raise SystemExit(f"{REPERTOIRE_PATH} not found")
+def collect_fens() -> list[str]:
+    if not CHAPTERS_PATH.exists():
+        raise SystemExit(f"{CHAPTERS_PATH} not found")
+    entries = json.loads(CHAPTERS_PATH.read_text(encoding="utf-8"))["chapters"]
+    if GAMES_PATH.exists():
+        entries += json.loads(GAMES_PATH.read_text(encoding="utf-8"))["games"]
 
-    repertoire = json.loads(REPERTOIRE_PATH.read_text(encoding="utf-8"))
     fens: list[str] = []
     seen: set[str] = set()
-    for chapter in repertoire["chapters"]:
-        for node in chapter["nodes"]:
+    for entry in entries:
+        for node in entry["nodes"]:
             if node["fen"] not in seen:
                 seen.add(node["fen"])
                 fens.append(node["fen"])
+    return fens
+
+
+def main() -> int:
+    args = parse_args()
+    fens = collect_fens()
+    seen = set(fens)
 
     evals = json.loads(OUTPUT_PATH.read_text(encoding="utf-8")) if OUTPUT_PATH.exists() else {}
 

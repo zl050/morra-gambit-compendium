@@ -3,7 +3,7 @@ import { copyFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 function copyRepertoireData() {
-  const files = ['data/repertoire.json', 'data/cloud-evals.json'];
+  const files = ['data/chapters.json', 'data/games.json', 'data/cloud-evals.json'];
 
   return {
     name: 'copy-repertoire-data',

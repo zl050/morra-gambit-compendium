@@ -390,12 +390,13 @@ async function init() {
   initSounds();
 
   try {
-    const [response, evalsResponse] = await Promise.all([
-      fetch('./data/repertoire.json', { cache: 'no-cache' }),
+    const [response, evalsResponse, gamesResponse] = await Promise.all([
+      fetch('./data/chapters.json', { cache: 'no-cache' }),
       fetch('./data/cloud-evals.json', { cache: 'no-cache' }).catch(() => null),
+      fetch('./data/games.json', { cache: 'no-cache' }).catch(() => null),
     ]);
     if (!response.ok) {
-      throw new Error(`Could not load repertoire.json (${response.status})`);
+      throw new Error(`Could not load chapters.json (${response.status})`);
     }
     if (evalsResponse?.ok) {
       try {
@@ -411,6 +412,17 @@ async function init() {
     }
 
     state.repertoire = await response.json();
+    if (gamesResponse?.ok) {
+      try {
+        const { games } = await gamesResponse.json();
+        // Appended after chapters: fenIndex insertion order doubles as search priority.
+        state.repertoire.chapters.push(...games);
+      } catch {
+        console.warn('games.json is corrupt');
+      }
+    } else {
+      console.warn('Could not load games.json');
+    }
     state.fenIndex = buildFenIndex(state.repertoire);
     renderChapterOptions();
     restoreFromHash();
@@ -518,6 +530,7 @@ async function init() {
 const CHAPTER_GROUP_BOUNDARIES = [
   { beforeId: 'ch1', label: 'Accepted' },
   { beforeId: 'ch11', label: 'Declined' },
+  { beforeId: 'g1', label: 'Model Games' },
 ];
 
 function renderChapterOptions() {
@@ -544,6 +557,7 @@ function selectChapter(chapterId, preferredNodeId = null, updateHash = true) {
   document.documentElement.classList.remove('is-home');
   els.notesBlock?.classList.remove('is-emphasized');
   clearQuizStatus();
+  els.quizMode.disabled = chapter.kind === 'game' && chapter.result === '0-1';
   // Clone nodes into a working copy so free-play edits never mutate the shared
   // repertoire data (also backing fenIndex/search) and are discarded on switch.
   state.nodesById = new Map(
@@ -613,6 +627,12 @@ function renderTree() {
   const table = document.createElement('div');
   table.className = 'notation-table';
   renderMainlineRows(root, table);
+  if (state.chapter.result) {
+    const result = document.createElement('div');
+    result.className = 'notation-result';
+    result.textContent = state.chapter.result;
+    table.append(result);
+  }
   els.tree.append(table);
 
   els.tree.querySelector('.selected')?.scrollIntoView({ block: 'nearest' });
@@ -1191,6 +1211,7 @@ function startQuiz() {
     setQuizStatus('Select a chapter first.', 'error');
     return;
   }
+  if (state.chapter.kind === 'game' && state.chapter.result === '0-1') return;
 
   const startNode = getSelectedNode();
   if (startNode.children.length === 0) {
@@ -1431,7 +1452,9 @@ function onUserMove(orig, dest) {
     return;
   }
 
-  const acceptable = acceptableWhiteChildren(before);
+  // Model games quiz on the moves as played; chapters accept any non-mistake line.
+  const isGame = state.chapter.kind === 'game';
+  const acceptable = isGame ? [mainlineChild(before)].filter(Boolean) : acceptableWhiteChildren(before);
   const playedKey = fenKey(chess.fen());
   const whiteNode = acceptable.find((child) => fenKey(child.fen) === playedKey);
 
@@ -1443,7 +1466,8 @@ function onUserMove(orig, dest) {
       lastMove: [orig, dest],
       movable: { dests: new Map() },
     });
-    setQuizStatus(`${result.san} is not the repertoire move here. Try again.`, 'error');
+    const expected = isGame ? 'the move played in the game' : 'the repertoire move';
+    setQuizStatus(`${result.san} is not ${expected}.`, 'error');
 
     setTimeout(() => {
       if (!state.quizActive) return;
@@ -1500,9 +1524,12 @@ function playQuizReply(node) {
 function presentBlackReply(whiteNode, blackNode, whiteLine) {
   if (playQuizReply(blackNode)) return;
 
-  const blackAlts = whiteNode.children
-    .map((id) => state.nodesById.get(id))
-    .filter((child) => child.id !== blackNode.id);
+  // Game quiz follows the game as played: no sideline swaps for Black.
+  const blackAlts = state.chapter.kind === 'game'
+    ? []
+    : whiteNode.children
+        .map((id) => state.nodesById.get(id))
+        .filter((child) => child.id !== blackNode.id);
 
   const parts = [`${whiteLine}\nBlack played ${sanLabelSentence(blackNode)}`];
   if (blackAlts.length) {
@@ -1524,9 +1551,11 @@ function presentBlackReply(whiteNode, blackNode, whiteLine) {
 // Opening feedback when the quiz starts on Black's move, plus buttons for
 // Black's sibling replies. The board itself is set up by the caller.
 function renderOpeningBlackStatus(startNode, blackNode) {
-  const blackAlts = startNode.children
-    .map((id) => state.nodesById.get(id))
-    .filter((child) => child.id !== blackNode.id);
+  const blackAlts = state.chapter.kind === 'game'
+    ? []
+    : startNode.children
+        .map((id) => state.nodesById.get(id))
+        .filter((child) => child.id !== blackNode.id);
 
   const parts = [`Black played ${sanLabelSentence(blackNode)} Find White's best move.`];
   if (blackAlts.length) {
@@ -1811,12 +1840,24 @@ async function copyExportPgn() {
   }, 1200);
 }
 
+// Blank lines separate paragraphs; single newlines (pre-line) break lines
+// within one. A multi-paragraph game description opens with its metadata block.
 function setDescription(text) {
-  els.descriptionText.textContent = text;
+  const blocks = text.split(/\n{2,}/);
+  els.descriptionText.replaceChildren(
+    ...blocks.map((block, index) => {
+      const paragraph = document.createElement('p');
+      paragraph.textContent = block;
+      if (index === 0 && blocks.length > 1 && state.chapter?.kind === 'game') {
+        paragraph.className = 'desc-metadata';
+      }
+      return paragraph;
+    }),
+  );
 }
 
 function showLoadError(error) {
-  setDescription(`Unable to load repertoire: ${error.message} Run the export script to generate data/repertoire.json.`);
+  setDescription(`Unable to load repertoire: ${error.message} Run the export script to generate data/chapters.json.`);
 }
 
 function replaceHash(hash) {
