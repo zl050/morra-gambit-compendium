@@ -230,6 +230,7 @@ select {
   font-size: 0.95rem;
   line-height: 1.55;
   text-wrap: pretty;
+  white-space: pre-line; /* model-game descriptions carry authored line breaks */
 }
 
 .source-panel {
@@ -1103,6 +1104,15 @@ body.resizing .board-resize {
   grid-column: 1 / -1;
   padding: 18px;
   color: var(--muted);
+}
+
+.notation-result {
+  grid-column: 1 / -1;
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  font-weight: 700;
+  color: var(--notation-move-fg);
 }
 
 .notation-variation-row {
