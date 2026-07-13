@@ -27,9 +27,9 @@
   font-family: var(--font-ui);
   font-synthesis: none;
   color: #2b2620;
-  background: #f0eee6;
-  --bg: #f0eee6;
-  --surface: #faf9f3;
+  background: #f2f0e9;
+  --bg: #f2f0e9;
+  --surface: #f6f2e8;
   --border: #ddd6c6;
   --surface-elevated: var(--surface);
   --fork-bg: #e6e1d3;
@@ -958,6 +958,7 @@ body.resizing .board-resize {
   min-height: 36px;
   font-weight: 700;
   color: var(--notation-move-fg);
+  border-top: 1px solid var(--border);
 }
 
 .notation-variation-row {
