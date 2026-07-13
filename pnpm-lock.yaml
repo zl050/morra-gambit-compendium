@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@fontsource-variable/lora':
+        specifier: ^5.2.8
+        version: 5.2.8
       chess.js:
         specifier: ^1.4.0
         version: 1.4.0
@@ -176,6 +179,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource-variable/lora@5.2.8':
+    resolution: {integrity: sha512-cxjTJ9BbOWIzusewR4UMBLVePvTSWV6dtNaNsCkF/oKoyA68fJGWfaYCILOOP1BObE4dmjfZ3xo6m9hdHhtYhg==}
 
   '@rollup/rollup-android-arm-eabi@4.61.1':
     resolution: {integrity: sha512-JnBB8MdXj45cajvTuO5FmPlvFVJRQgvrz1uSEl3NwqFnReAPGwb8EanbGi4z2nRaqLzjJSv5/JmycoTKlRZxHA==}
@@ -492,6 +498,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.27.7':
     optional: true
+
+  '@fontsource-variable/lora@5.2.8': {}
 
   '@rollup/rollup-android-arm-eabi@4.61.1':
     optional: true

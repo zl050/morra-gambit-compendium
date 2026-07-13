@@ -1,7 +1,6 @@
 import { Chessground } from 'chessground';
 import { Chess } from 'chess.js';
 import 'chessground/assets/chessground.base.css';
-import 'chessground/assets/chessground.cburnett.css';
 import './style.css';
 import './board-theme.css';
 import './pieces-merida.css';
@@ -24,20 +23,6 @@ const QUIZ_DESCRIPTION = 'White to move: seize the initiative with precise attac
 // home page (no real chapter open).
 const SCRATCH_ID = '__scratch__';
 
-// "Display" menu settings persisted to localStorage.
-const SETTING_KEYS = {
-  appearance: 'smg:appearance',
-  pieces: 'smg:pieces',
-};
-const SETTING_VALUES = {
-  appearance: ['light', 'dark'],
-  pieces: ['cburnett', 'merida'],
-};
-const SETTING_DEFAULTS = {
-  appearance: 'light',
-  pieces: 'cburnett',
-};
-
 const els = {
   chapterSelect: document.querySelector('#chapter-select'),
   descriptionText: document.querySelector('#description-text'),
@@ -48,9 +33,6 @@ const els = {
   endLine: document.querySelector('#end-line'),
   tree: document.querySelector('#tree'),
   forkPanel: document.querySelector('#fork-panel'),
-  flipBoard: document.querySelector('#flip-board'),
-  settingsToggle: document.querySelector('#settings-toggle'),
-  settingsMenu: document.querySelector('#settings-menu'),
   toggleSearch: document.querySelector('#toggle-search'),
   searchRow: document.querySelector('#search-row'),
   searchInput: document.querySelector('#search-input'),
@@ -60,14 +42,11 @@ const els = {
   exportRow: document.querySelector('#export-row'),
   exportText: document.querySelector('#export-text'),
   copyPgn: document.querySelector('#copy-pgn'),
-  toggleChallenge: document.querySelector('#challenge-bot'),
-  challengeRow: document.querySelector('#challenge-row'),
   quizMode: document.querySelector('#quiz-mode'),
   quizModeIcon: document.querySelector('#quiz-mode-icon'),
   quizExitIcon: document.querySelector('#quiz-exit-icon'),
   quizStatus: document.querySelector('#quiz-status'),
   treePanel: document.querySelector('#tree-panel'),
-  notesBlock: document.querySelector('#notes-block'),
   enginePanel: document.querySelector('#engine-panel'),
   engineToggle: document.querySelector('#engine-toggle'),
   engineEval: document.querySelector('#engine-eval'),
@@ -96,8 +75,6 @@ const state = {
   quizRetryCount: 0,
   // Counter for unique ids of user-created (free-play) nodes.
   nodeSeq: 0,
-  // The NOTES panel is emphasized only once, on the first home-page free-play move.
-  notesEmphasized: false,
 };
 
 // `viewOnly` must stay false for the board's whole lifetime. 
@@ -134,7 +111,6 @@ const ground = Chessground(els.board, {
 });
 
 setupBoardResize();
-initSettings();
 init();
 
 // Resize grip lives in `.board-frame`, not chessground's DOM (`redrawAll()`
@@ -238,93 +214,6 @@ function setupBoardResize() {
     }
   };
   observeBoard();
-}
-
-// Settings menu — Appearance and Pieces. Both persist to localStorage
-// (SETTING_KEYS) and apply a class on load:
-//   Appearance → `appearance-dark` on <html> (dark color palette)
-//   Pieces     → `pieces-merida` on #board (swaps the piece SVGs)
-
-function selectOption(setting, value) {
-  const row = els.settingsMenu.querySelector(`.settings-row[data-setting="${setting}"]`);
-  if (!row) return;
-  row.dataset.value = value;
-  for (const opt of row.querySelectorAll('.settings-opt')) {
-    const active = opt.dataset.value === value;
-    opt.classList.toggle('is-active', active);
-    opt.setAttribute('aria-checked', String(active));
-  }
-  for (const icon of row.querySelectorAll('.settings-row-icon .ic')) {
-    icon.classList.toggle('is-shown', icon.dataset.value === value);
-  }
-}
-
-function applyAppearance(value) {
-  document.documentElement.classList.toggle('appearance-dark', value === 'dark');
-  selectOption('appearance', value);
-}
-
-function applyPieces(value) {
-  els.board.classList.toggle('pieces-merida', value === 'merida');
-  selectOption('pieces', value);
-}
-
-function readSetting(setting) {
-  try {
-    const saved = localStorage.getItem(SETTING_KEYS[setting]);
-    if (SETTING_VALUES[setting].includes(saved)) return saved;
-  } catch {
-    // localStorage may be unavailable (e.g. private mode); fall back to default.
-  }
-  return SETTING_DEFAULTS[setting];
-}
-
-function applySetting(setting, value) {
-  if (setting === 'appearance') applyAppearance(value);
-  else if (setting === 'pieces') applyPieces(value);
-  else selectOption(setting, value);
-}
-
-function initSettings() {
-  // Restore every setting from localStorage (or its default) and apply it.
-  for (const setting of Object.keys(SETTING_KEYS)) {
-    applySetting(setting, readSetting(setting));
-  }
-
-  els.settingsMenu.addEventListener('click', (event) => {
-    const opt = event.target.closest('.settings-opt');
-    if (!opt) return;
-    const setting = opt.closest('.settings-row').dataset.setting;
-    const value = opt.dataset.value;
-    applySetting(setting, value);
-    try {
-      localStorage.setItem(SETTING_KEYS[setting], value);
-    } catch {
-    }
-  });
-
-  const closeMenu = () => {
-    els.settingsMenu.hidden = true;
-    els.settingsToggle.setAttribute('aria-expanded', 'false');
-  };
-  els.settingsToggle.addEventListener('click', (event) => {
-    event.stopPropagation();
-    const willOpen = els.settingsMenu.hidden;
-    els.settingsMenu.hidden = !willOpen;
-    els.settingsToggle.setAttribute('aria-expanded', String(willOpen));
-  });
-  document.addEventListener('click', (event) => {
-    if (els.settingsMenu.hidden) return;
-    if (!els.settingsToggle.contains(event.target) && !els.settingsMenu.contains(event.target)) {
-      closeMenu();
-    }
-  });
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !els.settingsMenu.hidden) {
-      closeMenu();
-      els.settingsToggle.focus();
-    }
-  });
 }
 
 const SHORTCUTS = {
@@ -459,7 +348,6 @@ async function init() {
   els.prevMove.addEventListener('click', selectPrevious);
   els.nextMove.addEventListener('click', selectNext);
   els.endLine.addEventListener('click', selectEnd);
-  els.flipBoard.addEventListener('click', () => ground.toggleOrientation());
   els.toggleSearch.addEventListener('click', () => toggleToolRow(els.searchRow, els.toggleSearch));
   els.searchInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
@@ -473,7 +361,6 @@ async function init() {
     if (open) refreshExportPgn();
   });
   els.copyPgn.addEventListener('click', copyExportPgn);
-  els.toggleChallenge.addEventListener('click', () => toggleToolRow(els.challengeRow, els.toggleChallenge));
   els.engineToggle.addEventListener('click', toggleEnginePanel);
   setupEngineInfoTip();
   els.enginePvs.addEventListener('click', (event) => {
@@ -487,7 +374,6 @@ async function init() {
     if (node.id === anchor.id) return;
     playMove(node.san);
     selectNode(node.id);
-    if (isHomeFirstMove) emphasizeNotesOnce();
   });
   els.enginePvs.addEventListener('mouseover', (event) => {
     const button = event.target.closest('.engine-pv-move');
@@ -555,8 +441,8 @@ function selectChapter(chapterId, preferredNodeId = null, updateHash = true) {
 
   state.chapter = chapter;
   document.documentElement.classList.remove('is-home');
-  els.notesBlock?.classList.remove('is-emphasized');
   clearQuizStatus();
+  clearSearchStatus();
   els.quizMode.disabled = chapter.kind === 'game' && chapter.result === '0-1';
   // Clone nodes into a working copy so free-play edits never mutate the shared
   // repertoire data (also backing fenIndex/search) and are discarded on switch.
@@ -1235,7 +1121,6 @@ function startQuiz() {
 
   if (!els.searchRow.hidden) toggleToolRow(els.searchRow, els.toggleSearch);
   if (!els.exportRow.hidden) toggleToolRow(els.exportRow, els.toggleExport);
-  if (!els.challengeRow.hidden) toggleToolRow(els.challengeRow, els.toggleChallenge);
 
   state.quizActive = true;
   state.selectedNodeId = currentNode.id;
@@ -1271,13 +1156,12 @@ function startQuiz() {
   els.prevMove.disabled = true;
   els.nextMove.disabled = true;
   els.endLine.disabled = true;
-  els.flipBoard.disabled = true;
   els.toggleSearch.disabled = true;
 
-  els.quizMode.querySelector('.tool-label').textContent = 'Quit quiz mode';
+  els.quizMode.querySelector('.tool-label').textContent = 'Exit';
   els.quizMode.setAttribute('aria-expanded', 'true');
-  els.quizMode.setAttribute('aria-label', 'Quit quiz mode');
-  els.quizMode.title = 'Quit quiz mode';
+  els.quizMode.setAttribute('aria-label', 'Exit');
+  els.quizMode.title = 'Exit';
   els.quizModeIcon.style.display = 'none';
   els.quizExitIcon.style.display = '';
 }
@@ -1300,13 +1184,12 @@ function endQuiz(message, kind) {
   els.treePanel.hidden = false;
 
   els.chapterSelect.disabled = false;
-  els.flipBoard.disabled = false;
   els.toggleSearch.disabled = false;
 
-  els.quizMode.querySelector('.tool-label').textContent = 'Quiz mode';
+  els.quizMode.querySelector('.tool-label').textContent = 'Quiz';
   els.quizMode.setAttribute('aria-expanded', 'false');
-  els.quizMode.setAttribute('aria-label', 'Quiz mode');
-  els.quizMode.title = 'Quiz mode';
+  els.quizMode.setAttribute('aria-label', 'Quiz');
+  els.quizMode.title = 'Quiz';
   els.quizModeIcon.style.display = '';
   els.quizExitIcon.style.display = 'none';
 
@@ -1363,17 +1246,6 @@ function startScratchChapter() {
   state.nodeSeq = 0;
 }
 
-function emphasizeNotesOnce() {
-  if (state.notesEmphasized) return;
-  state.notesEmphasized = true;
-  const panel = els.notesBlock;
-  if (!panel) return;
-  panel.classList.add('is-emphasized');
-  panel
-    .querySelector('#description-text')
-    ?.addEventListener('animationend', () => panel.classList.remove('is-emphasized'), { once: true });
-}
-
 // Reset the board to `fen` (after an illegal or rejected move attempt),
 // restoring its legal moves.
 function restoreBoardTo(fen, lastMove) {
@@ -1407,8 +1279,6 @@ function onFreeMove(orig, dest) {
   const node = attachChild(before, chess.fen(), result.san, orig + dest + (result.promotion || ''));
   playMove(node.san);
   selectNode(node.id);
-
-  if (isHomeFirstMove) emphasizeNotesOnce();
 }
 
 // Reach `fen` from `parent`: reuse an existing child if one already arrives
@@ -1792,6 +1662,12 @@ function setSearchStatus(message, kind) {
   els.searchStatus.textContent = message;
   els.searchStatus.dataset.kind = kind;
   els.searchStatus.hidden = false;
+}
+
+function clearSearchStatus() {
+  els.searchStatus.hidden = true;
+  els.searchStatus.textContent = '';
+  delete els.searchStatus.dataset.kind;
 }
 
 function buildLinePgn() {

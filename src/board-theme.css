@@ -1,19 +1,17 @@
 /* Board color theme for chessground.
  *
  * We deliberately do NOT import chessground's bundled brown theme. Instead the
- * blue board is defined here as a CSS-variable set on the root <html> element.
+ * brown board is defined here as a CSS-variable set on the root <html> element.
  * Square base colors and interactive highlights are all derived from these
- * variables. chessground.base.css (structure) and chessground.cburnett.css
- * (pieces) are still imported in app.js.
- */
+ * variables. chessground.base.css (structure) is still imported in app.js;
+ * pieces come from pieces-merida.css.
+*/
 
 :root {
-  --board-light: #dadee1;
-  --board-dark: #8ca2ad;
-  --board-last-move: rgba(255, 213, 79, 0.5);
-  --board-selected: rgba(255, 170, 40, 0.55);
-  --board-dest: rgba(20, 40, 80, 0.45);
-  --board-dest-oc: rgba(20, 40, 80, 0.3);
+  --board-light: #f0d9b5;
+  --board-dark: #b58863;
+  --board-last-move: rgba(255, 193, 71, 0.5);
+  --board-selected: rgba(233, 161, 43, 0.55);
 }
 
 /* Square base colors: a two-color checkerboard built from a 2x2-square conic
@@ -31,12 +29,6 @@
 }
 
 /* Interactive square highlights. */
-cg-board square.move-dest {
-  background: radial-gradient(var(--board-dest) 22%, rgba(0, 0, 0, 0) 0);
-}
-cg-board square.oc.move-dest {
-  background: radial-gradient(rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 80%, var(--board-dest-oc) 80%);
-}
 cg-board square.move-dest:hover {
   background: var(--board-selected);
 }
