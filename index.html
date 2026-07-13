@@ -15,40 +15,6 @@
           <h1>Smith-Morra Gambit Compendium</h1>
           <p class="subtitle">Master the gambiteer's initiative, or the scheming defender's setup.</p>
         </div>
-        <div class="settings">
-          <button id="settings-toggle" class="settings-display" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu" aria-label="Display settings">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-            <span class="settings-display-label">Display</span>
-          </button>
-          <div id="settings-menu" class="settings-menu" aria-label="Display settings" hidden>
-            <div class="settings-row" data-setting="appearance" data-value="light">
-              <span class="settings-row-icon" aria-hidden="true">
-                <svg class="ic is-shown" data-value="light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>
-                <svg class="ic" data-value="dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-              </span>
-              <span class="settings-row-label">Appearance</span>
-              <span class="settings-options" role="radiogroup" aria-label="Appearance">
-                <button type="button" class="settings-opt is-active" data-value="light" role="radio" aria-checked="true">Light</button>
-                <button type="button" class="settings-opt" data-value="dark" role="radio" aria-checked="false">Dark</button>
-              </span>
-            </div>
-
-            <div class="settings-row" data-setting="pieces" data-value="merida">
-              <span class="settings-row-icon" aria-hidden="true">
-                <svg class="ic ic-piece" data-value="cburnett" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z" /><path d="M16.5 18c1-2 2.5-5 2.5-9a7 7 0 0 0-7-7H6.635a1 1 0 0 0-.768 1.64L7 5l-2.32 5.802a2 2 0 0 0 .95 2.526l2.87 1.456" /><path d="m15 5 1.425-1.425" /><path d="m17 8 1.53-1.53" /><path d="M9.713 12.185 7 18" /></svg>
-                <svg class="ic ic-piece is-shown" data-value="merida" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z" /><path d="M15 18c1.5-.615 3-2.461 3-4.923C18 8.769 14.5 4.462 12 2 9.5 4.462 6 8.77 6 13.077 6 15.539 7.5 17.385 9 18" /><path d="m16 7-2.5 2.5" /><path d="M9 2h6" /></svg>
-              </span>
-              <span class="settings-row-label">Pieces</span>
-              <span class="settings-options" role="radiogroup" aria-label="Pieces">
-                <button type="button" class="settings-opt is-active" data-value="merida" role="radio" aria-checked="true">merida</button>
-                <button type="button" class="settings-opt" data-value="cburnett" role="radio" aria-checked="false">cburnett</button>
-              </span>
-            </div>
-          </div>
-        </div>
       </header>
 
       <aside class="sidebar">
@@ -150,7 +116,7 @@
 
       <main class="board-shell">
         <div class="board-frame">
-          <div id="board" class="board" aria-label="Chessboard"></div>
+          <div id="board" class="board pieces-merida" aria-label="Chessboard"></div>
           <div id="board-resize" class="board-resize" title="Drag to resize the board" aria-hidden="true"></div>
         </div>
       </main>

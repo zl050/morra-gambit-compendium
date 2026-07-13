@@ -1,7 +1,6 @@
 import { Chessground } from 'chessground';
 import { Chess } from 'chess.js';
 import 'chessground/assets/chessground.base.css';
-import 'chessground/assets/chessground.cburnett.css';
 import './style.css';
 import './board-theme.css';
 import './pieces-merida.css';
@@ -24,20 +23,6 @@ const QUIZ_DESCRIPTION = 'White to move: seize the initiative with precise attac
 // home page (no real chapter open).
 const SCRATCH_ID = '__scratch__';
 
-// "Display" menu settings persisted to localStorage.
-const SETTING_KEYS = {
-  appearance: 'smg:appearance',
-  pieces: 'smg:pieces',
-};
-const SETTING_VALUES = {
-  appearance: ['light', 'dark'],
-  pieces: ['cburnett', 'merida'],
-};
-const SETTING_DEFAULTS = {
-  appearance: 'light',
-  pieces: 'merida',
-};
-
 const els = {
   chapterSelect: document.querySelector('#chapter-select'),
   descriptionText: document.querySelector('#description-text'),
@@ -49,8 +34,6 @@ const els = {
   tree: document.querySelector('#tree'),
   forkPanel: document.querySelector('#fork-panel'),
   flipBoard: document.querySelector('#flip-board'),
-  settingsToggle: document.querySelector('#settings-toggle'),
-  settingsMenu: document.querySelector('#settings-menu'),
   toggleSearch: document.querySelector('#toggle-search'),
   searchRow: document.querySelector('#search-row'),
   searchInput: document.querySelector('#search-input'),
@@ -134,7 +117,6 @@ const ground = Chessground(els.board, {
 });
 
 setupBoardResize();
-initSettings();
 init();
 
 // Resize grip lives in `.board-frame`, not chessground's DOM (`redrawAll()`
@@ -238,93 +220,6 @@ function setupBoardResize() {
     }
   };
   observeBoard();
-}
-
-// Settings menu — Appearance and Pieces. Both persist to localStorage
-// (SETTING_KEYS) and apply a class on load:
-//   Appearance → `appearance-dark` on <html> (dark color palette)
-//   Pieces     → `pieces-merida` on #board (swaps the piece SVGs)
-
-function selectOption(setting, value) {
-  const row = els.settingsMenu.querySelector(`.settings-row[data-setting="${setting}"]`);
-  if (!row) return;
-  row.dataset.value = value;
-  for (const opt of row.querySelectorAll('.settings-opt')) {
-    const active = opt.dataset.value === value;
-    opt.classList.toggle('is-active', active);
-    opt.setAttribute('aria-checked', String(active));
-  }
-  for (const icon of row.querySelectorAll('.settings-row-icon .ic')) {
-    icon.classList.toggle('is-shown', icon.dataset.value === value);
-  }
-}
-
-function applyAppearance(value) {
-  document.documentElement.classList.toggle('appearance-dark', value === 'dark');
-  selectOption('appearance', value);
-}
-
-function applyPieces(value) {
-  els.board.classList.toggle('pieces-merida', value === 'merida');
-  selectOption('pieces', value);
-}
-
-function readSetting(setting) {
-  try {
-    const saved = localStorage.getItem(SETTING_KEYS[setting]);
-    if (SETTING_VALUES[setting].includes(saved)) return saved;
-  } catch {
-    // localStorage may be unavailable (e.g. private mode); fall back to default.
-  }
-  return SETTING_DEFAULTS[setting];
-}
-
-function applySetting(setting, value) {
-  if (setting === 'appearance') applyAppearance(value);
-  else if (setting === 'pieces') applyPieces(value);
-  else selectOption(setting, value);
-}
-
-function initSettings() {
-  // Restore every setting from localStorage (or its default) and apply it.
-  for (const setting of Object.keys(SETTING_KEYS)) {
-    applySetting(setting, readSetting(setting));
-  }
-
-  els.settingsMenu.addEventListener('click', (event) => {
-    const opt = event.target.closest('.settings-opt');
-    if (!opt) return;
-    const setting = opt.closest('.settings-row').dataset.setting;
-    const value = opt.dataset.value;
-    applySetting(setting, value);
-    try {
-      localStorage.setItem(SETTING_KEYS[setting], value);
-    } catch {
-    }
-  });
-
-  const closeMenu = () => {
-    els.settingsMenu.hidden = true;
-    els.settingsToggle.setAttribute('aria-expanded', 'false');
-  };
-  els.settingsToggle.addEventListener('click', (event) => {
-    event.stopPropagation();
-    const willOpen = els.settingsMenu.hidden;
-    els.settingsMenu.hidden = !willOpen;
-    els.settingsToggle.setAttribute('aria-expanded', String(willOpen));
-  });
-  document.addEventListener('click', (event) => {
-    if (els.settingsMenu.hidden) return;
-    if (!els.settingsToggle.contains(event.target) && !els.settingsMenu.contains(event.target)) {
-      closeMenu();
-    }
-  });
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !els.settingsMenu.hidden) {
-      closeMenu();
-      els.settingsToggle.focus();
-    }
-  });
 }
 
 const SHORTCUTS = {
