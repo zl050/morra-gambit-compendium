@@ -1,17 +1,18 @@
-/* Merida is the only piece set; #board carries a static `pieces-merida`
-   class (index.html). #board IS chessground's .cg-wrap, so pieces are
-   selected as #board.pieces-merida piece.*.* directly. */
+/* Merida is the only piece set. Each chessground .cg-wrap that should show
+   pieces carries a static `pieces-merida` class (index.html): #board and the
+   engine PV hover-preview board. The .cg-wrap IS the element with the class,
+   so pieces are selected as .pieces-merida piece.*.* directly. */
 
-#board.pieces-merida piece.pawn.white   { background-image: url('/piece/merida/wP.svg'); }
-#board.pieces-merida piece.rook.white   { background-image: url('/piece/merida/wR.svg'); }
-#board.pieces-merida piece.knight.white { background-image: url('/piece/merida/wN.svg'); }
-#board.pieces-merida piece.bishop.white { background-image: url('/piece/merida/wB.svg'); }
-#board.pieces-merida piece.queen.white  { background-image: url('/piece/merida/wQ.svg'); }
-#board.pieces-merida piece.king.white   { background-image: url('/piece/merida/wK.svg'); }
+.pieces-merida piece.pawn.white   { background-image: url('/piece/merida/wP.svg'); }
+.pieces-merida piece.rook.white   { background-image: url('/piece/merida/wR.svg'); }
+.pieces-merida piece.knight.white { background-image: url('/piece/merida/wN.svg'); }
+.pieces-merida piece.bishop.white { background-image: url('/piece/merida/wB.svg'); }
+.pieces-merida piece.queen.white  { background-image: url('/piece/merida/wQ.svg'); }
+.pieces-merida piece.king.white   { background-image: url('/piece/merida/wK.svg'); }
 
-#board.pieces-merida piece.pawn.black   { background-image: url('/piece/merida/bP.svg'); }
-#board.pieces-merida piece.rook.black   { background-image: url('/piece/merida/bR.svg'); }
-#board.pieces-merida piece.knight.black { background-image: url('/piece/merida/bN.svg'); }
-#board.pieces-merida piece.bishop.black { background-image: url('/piece/merida/bB.svg'); }
-#board.pieces-merida piece.queen.black  { background-image: url('/piece/merida/bQ.svg'); }
-#board.pieces-merida piece.king.black   { background-image: url('/piece/merida/bK.svg'); }
+.pieces-merida piece.pawn.black   { background-image: url('/piece/merida/bP.svg'); }
+.pieces-merida piece.rook.black   { background-image: url('/piece/merida/bR.svg'); }
+.pieces-merida piece.knight.black { background-image: url('/piece/merida/bN.svg'); }
+.pieces-merida piece.bishop.black { background-image: url('/piece/merida/bB.svg'); }
+.pieces-merida piece.queen.black  { background-image: url('/piece/merida/bQ.svg'); }
+.pieces-merida piece.king.black   { background-image: url('/piece/merida/bK.svg'); }
