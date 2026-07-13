@@ -1,8 +1,6 @@
-/* Merida piece set — the only piece set. #board carries the static
-   `pieces-merida` class (see index.html). Chessground adds .cg-wrap to the
-   element passed to Chessground() — so #board IS .cg-wrap. Pieces live at
-   #board > cg-container > cg-board > piece.*.*, hence the selector
-   #board.pieces-merida piece.*.* (no inner .cg-wrap step). */
+/* Merida is the only piece set; #board carries a static `pieces-merida`
+   class (index.html). #board IS chessground's .cg-wrap, so pieces are
+   selected as #board.pieces-merida piece.*.* directly. */
 
 #board.pieces-merida piece.pawn.white   { background-image: url('/piece/merida/wP.svg'); }
 #board.pieces-merida piece.rook.white   { background-image: url('/piece/merida/wR.svg'); }

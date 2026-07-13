@@ -10,10 +10,8 @@
 :root {
   --board-light: #f0d9b5;
   --board-dark: #b58863;
-  --board-last-move: rgba(155, 199, 0, 0.41);
-  --board-selected: rgba(20, 85, 30, 0.5);
-  --board-dest: rgba(20, 85, 30, 0.5);
-  --board-dest-oc: rgba(20, 85, 0, 0.3);
+  --board-last-move: rgba(255, 193, 71, 0.5);
+  --board-selected: rgba(233, 161, 43, 0.55);
 }
 
 /* Square base colors: a two-color checkerboard built from a 2x2-square conic
@@ -31,12 +29,6 @@
 }
 
 /* Interactive square highlights. */
-cg-board square.move-dest {
-  background: radial-gradient(var(--board-dest) 22%, rgba(0, 0, 0, 0) 0);
-}
-cg-board square.oc.move-dest {
-  background: radial-gradient(rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 80%, var(--board-dest-oc) 80%);
-}
 cg-board square.move-dest:hover {
   background: var(--board-selected);
 }
