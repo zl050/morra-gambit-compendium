@@ -33,7 +33,6 @@ const els = {
   endLine: document.querySelector('#end-line'),
   tree: document.querySelector('#tree'),
   forkPanel: document.querySelector('#fork-panel'),
-  flipBoard: document.querySelector('#flip-board'),
   toggleSearch: document.querySelector('#toggle-search'),
   searchRow: document.querySelector('#search-row'),
   searchInput: document.querySelector('#search-input'),
@@ -43,8 +42,6 @@ const els = {
   exportRow: document.querySelector('#export-row'),
   exportText: document.querySelector('#export-text'),
   copyPgn: document.querySelector('#copy-pgn'),
-  toggleChallenge: document.querySelector('#challenge-bot'),
-  challengeRow: document.querySelector('#challenge-row'),
   quizMode: document.querySelector('#quiz-mode'),
   quizModeIcon: document.querySelector('#quiz-mode-icon'),
   quizExitIcon: document.querySelector('#quiz-exit-icon'),
@@ -354,7 +351,6 @@ async function init() {
   els.prevMove.addEventListener('click', selectPrevious);
   els.nextMove.addEventListener('click', selectNext);
   els.endLine.addEventListener('click', selectEnd);
-  els.flipBoard.addEventListener('click', () => ground.toggleOrientation());
   els.toggleSearch.addEventListener('click', () => toggleToolRow(els.searchRow, els.toggleSearch));
   els.searchInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
@@ -368,7 +364,6 @@ async function init() {
     if (open) refreshExportPgn();
   });
   els.copyPgn.addEventListener('click', copyExportPgn);
-  els.toggleChallenge.addEventListener('click', () => toggleToolRow(els.challengeRow, els.toggleChallenge));
   els.engineToggle.addEventListener('click', toggleEnginePanel);
   setupEngineInfoTip();
   els.enginePvs.addEventListener('click', (event) => {
@@ -452,6 +447,7 @@ function selectChapter(chapterId, preferredNodeId = null, updateHash = true) {
   document.documentElement.classList.remove('is-home');
   els.notesBlock?.classList.remove('is-emphasized');
   clearQuizStatus();
+  clearSearchStatus();
   els.quizMode.disabled = chapter.kind === 'game' && chapter.result === '0-1';
   // Clone nodes into a working copy so free-play edits never mutate the shared
   // repertoire data (also backing fenIndex/search) and are discarded on switch.
@@ -1130,7 +1126,6 @@ function startQuiz() {
 
   if (!els.searchRow.hidden) toggleToolRow(els.searchRow, els.toggleSearch);
   if (!els.exportRow.hidden) toggleToolRow(els.exportRow, els.toggleExport);
-  if (!els.challengeRow.hidden) toggleToolRow(els.challengeRow, els.toggleChallenge);
 
   state.quizActive = true;
   state.selectedNodeId = currentNode.id;
@@ -1166,13 +1161,12 @@ function startQuiz() {
   els.prevMove.disabled = true;
   els.nextMove.disabled = true;
   els.endLine.disabled = true;
-  els.flipBoard.disabled = true;
   els.toggleSearch.disabled = true;
 
-  els.quizMode.querySelector('.tool-label').textContent = 'Quit quiz mode';
+  els.quizMode.querySelector('.tool-label').textContent = 'Exit';
   els.quizMode.setAttribute('aria-expanded', 'true');
-  els.quizMode.setAttribute('aria-label', 'Quit quiz mode');
-  els.quizMode.title = 'Quit quiz mode';
+  els.quizMode.setAttribute('aria-label', 'Exit');
+  els.quizMode.title = 'Exit';
   els.quizModeIcon.style.display = 'none';
   els.quizExitIcon.style.display = '';
 }
@@ -1195,13 +1189,12 @@ function endQuiz(message, kind) {
   els.treePanel.hidden = false;
 
   els.chapterSelect.disabled = false;
-  els.flipBoard.disabled = false;
   els.toggleSearch.disabled = false;
 
-  els.quizMode.querySelector('.tool-label').textContent = 'Quiz mode';
+  els.quizMode.querySelector('.tool-label').textContent = 'Quiz';
   els.quizMode.setAttribute('aria-expanded', 'false');
-  els.quizMode.setAttribute('aria-label', 'Quiz mode');
-  els.quizMode.title = 'Quiz mode';
+  els.quizMode.setAttribute('aria-label', 'Quiz');
+  els.quizMode.title = 'Quiz';
   els.quizModeIcon.style.display = '';
   els.quizExitIcon.style.display = 'none';
 
@@ -1687,6 +1680,12 @@ function setSearchStatus(message, kind) {
   els.searchStatus.textContent = message;
   els.searchStatus.dataset.kind = kind;
   els.searchStatus.hidden = false;
+}
+
+function clearSearchStatus() {
+  els.searchStatus.hidden = true;
+  els.searchStatus.textContent = '';
+  delete els.searchStatus.dataset.kind;
 }
 
 function buildLinePgn() {
