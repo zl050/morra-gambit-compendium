@@ -916,7 +916,7 @@ body.resizing .board-resize {
 .notation-variation-row {
   position: relative;
   grid-column: 1 / -1;
-  padding: 6px 14px 6px 13px;
+  padding: 3px 14px 3px 13px;
   border-top: 1px solid var(--border);
   background: var(--surface-sunken);
   color: var(--mainline);
@@ -951,11 +951,11 @@ body.resizing .board-resize {
 
 .notation-variation-row:not(:has(+ .notation-variation-row))::before {
   bottom: auto;
-  height: calc(6px + 0.5lh);
+  height: calc(3px + 0.5lh);
 }
 
 .notation-variation-row::after {
-  top: calc(6px + 0.5lh);
+  top: calc(3px + 0.5lh);
   width: 8px;
   height: 2px;
   background: var(--border-strong);
@@ -964,7 +964,7 @@ body.resizing .board-resize {
 .variation-block {
   position: relative;
   display: block;
-  margin: 2px 0 2px 2px;
+  margin: 1px 0 1px 2px;
   padding-left: 14px;
 }
 
