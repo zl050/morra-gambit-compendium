@@ -47,7 +47,6 @@ const els = {
   quizExitIcon: document.querySelector('#quiz-exit-icon'),
   quizStatus: document.querySelector('#quiz-status'),
   treePanel: document.querySelector('#tree-panel'),
-  notesBlock: document.querySelector('#notes-block'),
   enginePanel: document.querySelector('#engine-panel'),
   engineToggle: document.querySelector('#engine-toggle'),
   engineEval: document.querySelector('#engine-eval'),
@@ -76,8 +75,6 @@ const state = {
   quizRetryCount: 0,
   // Counter for unique ids of user-created (free-play) nodes.
   nodeSeq: 0,
-  // The NOTES panel is emphasized only once, on the first home-page free-play move.
-  notesEmphasized: false,
 };
 
 // `viewOnly` must stay false for the board's whole lifetime. 
@@ -377,7 +374,6 @@ async function init() {
     if (node.id === anchor.id) return;
     playMove(node.san);
     selectNode(node.id);
-    if (isHomeFirstMove) emphasizeNotesOnce();
   });
   els.enginePvs.addEventListener('mouseover', (event) => {
     const button = event.target.closest('.engine-pv-move');
@@ -445,7 +441,6 @@ function selectChapter(chapterId, preferredNodeId = null, updateHash = true) {
 
   state.chapter = chapter;
   document.documentElement.classList.remove('is-home');
-  els.notesBlock?.classList.remove('is-emphasized');
   clearQuizStatus();
   clearSearchStatus();
   els.quizMode.disabled = chapter.kind === 'game' && chapter.result === '0-1';
@@ -1251,17 +1246,6 @@ function startScratchChapter() {
   state.nodeSeq = 0;
 }
 
-function emphasizeNotesOnce() {
-  if (state.notesEmphasized) return;
-  state.notesEmphasized = true;
-  const panel = els.notesBlock;
-  if (!panel) return;
-  panel.classList.add('is-emphasized');
-  panel
-    .querySelector('#description-text')
-    ?.addEventListener('animationend', () => panel.classList.remove('is-emphasized'), { once: true });
-}
-
 // Reset the board to `fen` (after an illegal or rejected move attempt),
 // restoring its legal moves.
 function restoreBoardTo(fen, lastMove) {
@@ -1295,8 +1279,6 @@ function onFreeMove(orig, dest) {
   const node = attachChild(before, chess.fen(), result.san, orig + dest + (result.promotion || ''));
   playMove(node.san);
   selectNode(node.id);
-
-  if (isHomeFirstMove) emphasizeNotesOnce();
 }
 
 // Reach `fen` from `parent`: reuse an existing child if one already arrives

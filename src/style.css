@@ -127,22 +127,6 @@ button:disabled {
   align-self: start;
 }
 
-.notes-block.is-emphasized #description-text {
-  animation: notes-wash 2s ease-in-out 1;
-}
-
-@keyframes notes-wash {
-  0% {
-    background: var(--surface);
-  }
-  50% {
-    background: color-mix(in srgb, var(--accent) 25%, var(--surface));
-  }
-  100% {
-    background: var(--surface);
-  }
-}
-
 .panel-label {
   margin-bottom: 10px;
 }
