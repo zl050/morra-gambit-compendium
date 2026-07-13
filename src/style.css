@@ -22,6 +22,7 @@
   color-scheme: light;
   --font-ui: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: 'Lora Variable', Lora, Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace;
   --tracking-label: 0.04em;
   font-family: var(--font-ui);
   font-synthesis: none;
@@ -155,17 +156,20 @@ p {
 h1 {
   margin-bottom: 8px;
   color: var(--mainline);
+  font-family: var(--font-serif);
   font-size: clamp(1.4rem, 1.15rem + 1vw, 1.7rem);
-  font-weight: 800;
-  line-height: 1.12;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: normal;
   text-wrap: balance;
 }
 
 .subtitle {
   margin-bottom: 0;
-  color: var(--muted);
-  font-size: 0.95rem;
+  color: var(--description-fg);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1rem;
   line-height: 1.5;
 }
 
@@ -208,8 +212,9 @@ select {
   border-radius: 8px;
   background: var(--surface);
   color: var(--description-fg);
-  font-size: 0.95rem;
-  line-height: 1.55;
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  line-height: 1.6;
   text-wrap: pretty;
   white-space: pre-line;
 }
@@ -224,6 +229,7 @@ select {
 
 #description-text .desc-metadata {
   color: var(--muted);
+  font-family: var(--font-ui);
   font-size: 0.85rem;
   line-height: 1.5;
 }
@@ -430,6 +436,8 @@ select {
   background: var(--surface);
   color: var(--mainline);
   font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
 }
 
 .tool-copy {
@@ -464,8 +472,9 @@ select {
   border-radius: 6px;
   background: var(--surface);
   color: var(--mainline);
-  font-size: 0.92rem;
-  line-height: 1.4;
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  line-height: 1.45;
 }
 
 .tool-text a {
