@@ -32,6 +32,7 @@
   --surface: #f6f2e8;
   --border: #ddd6c6;
   --surface-elevated: var(--surface);
+  --surface-sunken: #ece7db;
   --fork-bg: #e6e1d3;
   --tip-border: var(--border);
   --tip-bg: var(--surface);
@@ -47,7 +48,6 @@
   --link-hover: #2f5f9f;
   --mainline: #1c1712;
   --description-fg: #4a4136;
-  --notation-num-bg: #ece7db;
   --notation-num-fg: #8f8676;
   --notation-move-fg: #2a2520;
   --sideline-fg: #746b5e;
@@ -162,15 +162,6 @@ h1 {
   line-height: 1.14;
   letter-spacing: normal;
   text-wrap: balance;
-}
-
-.subtitle {
-  margin-bottom: 0;
-  color: var(--description-fg);
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 1rem;
-  line-height: 1.5;
 }
 
 h2 {
@@ -594,7 +585,7 @@ body.resizing .board-resize {
   contain: inline-size;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
-  background: var(--surface-elevated);
+  background: var(--surface-sunken);
 }
 
 .engine-panel.engine-panel--on {
@@ -772,6 +763,7 @@ body.resizing .board-resize {
   flex-direction: column;
   margin: 8px -12px -10px;
   border-top: 1px solid var(--divider);
+  background: var(--surface-elevated);
 }
 
 .engine-pvs[hidden] {
@@ -893,7 +885,7 @@ body.resizing .board-resize {
   place-items: center;
   color: var(--notation-num-fg);
   font-size: 0.9rem;
-  background: var(--notation-num-bg);
+  background: var(--surface-sunken);
 }
 
 .notation-cell {
@@ -942,7 +934,7 @@ body.resizing .board-resize {
   grid-column: 1 / -1;
   padding: 6px 14px 6px 13px;
   border-top: 1px solid var(--border);
-  background: var(--notation-num-bg);
+  background: var(--surface-sunken);
   color: var(--mainline);
   font-size: 0.95rem;
   line-height: 1.8;
@@ -1045,6 +1037,7 @@ body.resizing .board-resize {
 .variation,
 .variation .notation-move-inline.sideline {
   font-style: italic;
+  font-synthesis: style;
   color: var(--sideline-fg);
 }
 
