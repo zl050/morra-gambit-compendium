@@ -1,7 +1,30 @@
+/* Lora variable font — latin subset only (@fontsource-variable/lora as file
+   provider). One variable file per style covers weights 400–700. */
+@font-face {
+  font-family: 'Lora Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url('../node_modules/@fontsource-variable/lora/files/lora-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora Variable';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url('../node_modules/@fontsource-variable/lora/files/lora-latin-wght-italic.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   color-scheme: light;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-ui: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: 'Lora Variable', Lora, Georgia, "Times New Roman", serif;
+  --tracking-label: 0.04em;
+  font-family: var(--font-ui);
+  font-synthesis: none;
   color: #2b2620;
   background: #f0eee6;
   --bg: #f0eee6;
@@ -149,7 +172,7 @@ h1 {
 h2 {
   margin-bottom: 12px;
   font-size: 0.9rem;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 
@@ -167,7 +190,7 @@ select {
   font-style: normal;
   color: var(--muted);
   font-size: 0.78rem;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 
@@ -223,7 +246,7 @@ select {
   margin: 0 0 8px;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--mainline);
 }
@@ -463,7 +486,7 @@ select {
   color: #9a5b00;
   font-size: 0.9rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   text-align: center;
 }
@@ -716,7 +739,7 @@ body.resizing .board-resize {
   color: var(--status-success-fg);
   font-size: 0.71rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 

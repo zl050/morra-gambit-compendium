@@ -15,6 +15,7 @@
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
+    "@fontsource-variable/lora": "^5.2.8",
     "chess.js": "^1.4.0",
     "chessground": "^9.2.1"
   },
