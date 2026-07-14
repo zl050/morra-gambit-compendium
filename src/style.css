@@ -75,6 +75,27 @@ body {
   background: var(--bg);
 }
 
+/* Global scrollbars — webkit only; Firefox keeps its native thin bar.
+   Track is transparent so it inherits each container's own background
+   (--panel on the panels, --surface inside the tree); the thumb uses the
+   theme's taupe border and darkens on hover. Adapted from lichess/lila
+   ui/lib/css/base/_scrollbar.scss. */
+::-webkit-scrollbar,
+::-webkit-scrollbar-corner {
+  width: 0.5rem;
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background: var(--muted);
+}
+
 button,
 select {
   font: inherit;
