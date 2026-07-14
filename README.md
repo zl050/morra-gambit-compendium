@@ -1,4 +1,4 @@
-# Smith-Morra Gambit Compendium
+# Morra Gambit Compendium
 
 A standalone static website for browsing a concise Smith-Morra Gambit compendium
 by chapter, on an interactive board. Select a chapter or search by PGN/FEN, step

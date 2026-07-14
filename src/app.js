@@ -144,7 +144,9 @@ function setupBoardResize() {
     rafId = 0;
     if (pendingSize == null) return;
     frame.style.maxWidth = 'none';
-    frame.style.width = `${pendingSize}px`;
+    // Cap at the container so a size chosen at a wide viewport collapses back
+    // instead of overflowing into the tree panel when the window narrows.
+    frame.style.width = `min(${pendingSize}px, 100%)`;
     ground.redrawAll();
     positionHandle();
   };
@@ -173,7 +175,7 @@ function setupBoardResize() {
     const layoutMax = multiColumn
       ? Math.min(shell.clientHeight, shell.clientWidth + 2 * gap)
       : shell.clientWidth;
-    // Keep the zoom modest and relative to the board's initial size: 0.75x–1.25x.
+    // Keep the zoom modest and relative to the board's initial size: 0.75x-1.25x.
     // The displayed initial size is 1.1x the original baseline.
     const baseSize = initialBoardSize / 1.1;
     const minSize = baseSize * 0.75;

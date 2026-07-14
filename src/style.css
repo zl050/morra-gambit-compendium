@@ -1,5 +1,5 @@
 /* Lora variable font — latin subset only (@fontsource-variable/lora as file
-   provider). One variable file per style covers weights 400–700. */
+   provider). One variable file per style covers weights 400-700. */
 @font-face {
   font-family: 'Lora Variable';
   font-style: normal;
@@ -1114,10 +1114,6 @@ body.resizing .board-resize {
 
   .tree {
     min-height: 260px;
-  }
-
-  .repertoire-controls {
-    order: -1;
   }
 
   .board-frame {
