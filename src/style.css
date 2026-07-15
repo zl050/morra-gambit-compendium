@@ -481,7 +481,6 @@ select {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .quiz-alt-btn:active {
@@ -783,8 +782,8 @@ body.resizing .board-resize {
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  width: 29px;
-  height: 29px;
+  width: 27px;
+  height: 27px;
   padding: 0;
   border: none;
   border-radius: 6px;
@@ -793,8 +792,8 @@ body.resizing .board-resize {
 }
 
 .engine-icon-btn svg {
-  width: 19px;
-  height: 19px;
+  width: 17px;
+  height: 17px;
 }
 
 .engine-icon-btn:hover,
@@ -804,7 +803,6 @@ body.resizing .board-resize {
 }
 
 .engine-info {
-  position: relative;
   display: contents;
 }
 

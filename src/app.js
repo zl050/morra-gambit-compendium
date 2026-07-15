@@ -400,11 +400,6 @@ async function init() {
     },
     { passive: false },
   );
-  // CSS `overscroll-behavior: contain` can't tell "no overflow" apart from
-  // "at the scroll boundary" — it would block page scroll even when a panel
-  // has nothing to scroll. Checked live per event instead: only swallow the
-  // wheel event when the panel is actually scrollable and already at the
-  // edge in the scroll direction; otherwise let it bubble to the page.
   for (const panel of [document.querySelector('.sidebar'), els.tree]) {
     panel?.addEventListener(
       'wheel',
@@ -818,34 +813,15 @@ function toggleEnginePanel() {
   }
 }
 
-// `hovering`/`pinned` gate the tip in JS, not CSS :hover, so a click can
-// toggle it regardless of hover state. Touch has no hover, so `pinned` is
-// its only path (pointerType filters mouse-only events).
 function setupEngineInfoTip() {
   const info = els.engineInfoBtn.closest('.engine-info');
-  let hovering = false;
-  let pinned = false;
-  const sync = () => info.classList.toggle('is-open', hovering || pinned);
-
   info.addEventListener('pointerenter', (event) => {
     if (event.pointerType !== 'mouse') return;
-    hovering = true;
-    sync();
+    info.classList.add('is-open');
   });
   info.addEventListener('pointerleave', (event) => {
     if (event.pointerType !== 'mouse') return;
-    hovering = false;
-    sync();
-  });
-  els.engineInfoBtn.addEventListener('click', () => {
-    pinned = !pinned;
-    if (!pinned) hovering = false;
-    sync();
-  });
-  document.addEventListener('pointerdown', (event) => {
-    if (!pinned || info.contains(event.target)) return;
-    pinned = false;
-    sync();
+    info.classList.remove('is-open');
   });
 }
 
