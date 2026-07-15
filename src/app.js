@@ -831,8 +831,12 @@ function setupFoldNav() {
   const label = document.querySelector('#fold-nav-label');
   const gotoBtn = document.querySelector('#fold-nav-goto');
   const historySection = document.querySelector('#history');
+  const title = document.querySelector('.site-title');
+  const suffixRep = title.querySelector('.suffix-rep');
+  const suffixHist = title.querySelector('.suffix-hist');
   let open = false;
   let atHistory = false;
+  let ready = false;
   const sync = () => {
     nav.classList.toggle('is-open', open);
     btn.setAttribute('aria-expanded', String(open));
@@ -848,9 +852,6 @@ function setupFoldNav() {
     open = false;
     sync();
   });
-  // Click only opens, never toggles closed — a click right after a
-  // hover-open can't flip it shut. Touch (no hover) relies on this to open
-  // at all; closing on touch goes through the outside pointerdown below.
   btn.addEventListener('click', () => {
     open = true;
     sync();
@@ -874,11 +875,24 @@ function setupFoldNav() {
   new IntersectionObserver(
     (entries) => {
       const entry = entries.at(-1);
-      atHistory = entry.isIntersecting;
+      const ratio = entry.intersectionRatio;
+      let next = atHistory;
+      if (ratio >= 0.7) next = true;
+      else if (ratio <= 0.3) next = false;
+      if (ready && next === atHistory) return;
+      const first = !ready;
+      ready = true;
+      atHistory = next;
       label.textContent = atHistory ? 'History' : 'Repertoire';
       gotoBtn.textContent = atHistory ? 'Repertoire' : 'History';
+      suffixRep.setAttribute('aria-hidden', String(atHistory));
+      suffixHist.setAttribute('aria-hidden', String(!atHistory));
+      if (!first) {
+        title.classList.toggle('is-history', atHistory);
+        title.classList.toggle('is-repertoire', !atHistory);
+      }
     },
-    { threshold: 0.5 },
+    { threshold: [0.3, 0.7] },
   ).observe(historySection);
 }
 

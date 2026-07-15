@@ -963,6 +963,57 @@ body.resizing .board-resize {
   min-width: 0;
 }
 
+/* Animated title: shared "Morra Gambit" base + a suffix */
+.title-slot {
+  position: relative;
+  display: inline-block;
+  white-space: pre;
+}
+
+.title-sizer {
+  visibility: hidden;
+}
+
+.title-suffix {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding-bottom: 0.25em;
+  white-space: pre;
+}
+
+.suffix-rep {
+  clip-path: inset(0 0 0 0);
+}
+
+.suffix-hist {
+  clip-path: inset(0 100% 0 0);
+}
+
+.site-title.is-history .suffix-rep {
+  clip-path: inset(0 0 0 100%);
+}
+.site-title.is-history .suffix-hist {
+  animation: title-wipe-in var(--title-wipe, 1s) cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.site-title.is-repertoire .suffix-hist {
+  clip-path: inset(0 0 0 100%);
+}
+.site-title.is-repertoire .suffix-rep {
+  animation: title-wipe-in var(--title-wipe, 1s) cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes title-wipe-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title-suffix {
+    animation-duration: 1ms !important;
+  }
+}
+
 .tree-panel[hidden] {
   visibility: hidden;
 }
