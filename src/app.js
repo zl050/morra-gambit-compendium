@@ -399,6 +399,23 @@ async function init() {
     },
     { passive: false },
   );
+  // CSS `overscroll-behavior: contain` can't tell "no overflow" apart from
+  // "at the scroll boundary" — it would block page scroll even when a panel
+  // has nothing to scroll. Checked live per event instead: only swallow the
+  // wheel event when the panel is actually scrollable and already at the
+  // edge in the scroll direction; otherwise let it bubble to the page.
+  for (const panel of [document.querySelector('.sidebar'), els.tree]) {
+    panel?.addEventListener(
+      'wheel',
+      (event) => {
+        if (panel.scrollHeight <= panel.clientHeight) return;
+        const atTop = panel.scrollTop <= 0;
+        const atBottom = Math.ceil(panel.scrollTop + panel.clientHeight) >= panel.scrollHeight;
+        if ((event.deltaY < 0 && atTop) || (event.deltaY > 0 && atBottom)) event.preventDefault();
+      },
+      { passive: false },
+    );
+  }
   window.addEventListener('keydown', (event) => {
     if (state.quizActive) {
       if (event.key === 'Escape') endQuiz();
