@@ -365,6 +365,7 @@ async function init() {
   els.copyPgn.addEventListener('click', copyExportPgn);
   els.engineToggle.addEventListener('click', toggleEnginePanel);
   setupEngineInfoTip();
+  setupFoldNav();
   els.enginePvs.addEventListener('click', (event) => {
     if (state.quizActive) return;
     const button = event.target.closest('.engine-pv-move');
@@ -846,6 +847,63 @@ function setupEngineInfoTip() {
     pinned = false;
     sync();
   });
+}
+
+function setupFoldNav() {
+  const nav = document.querySelector('.fold-nav');
+  const btn = document.querySelector('#fold-nav-btn');
+  const label = document.querySelector('#fold-nav-label');
+  const gotoBtn = document.querySelector('#fold-nav-goto');
+  const historySection = document.querySelector('#history');
+  let open = false;
+  let atHistory = false;
+  const sync = () => {
+    nav.classList.toggle('is-open', open);
+    btn.setAttribute('aria-expanded', String(open));
+  };
+
+  nav.addEventListener('pointerenter', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    open = true;
+    sync();
+  });
+  nav.addEventListener('pointerleave', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    open = false;
+    sync();
+  });
+  // Click only opens, never toggles closed — a click right after a
+  // hover-open can't flip it shut. Touch (no hover) relies on this to open
+  // at all; closing on touch goes through the outside pointerdown below.
+  btn.addEventListener('click', () => {
+    open = true;
+    sync();
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!open || nav.contains(event.target)) return;
+    open = false;
+    sync();
+  });
+
+  gotoBtn.addEventListener('click', () => {
+    if (atHistory) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      historySection.scrollIntoView({ behavior: 'smooth' });
+    }
+    open = false;
+    sync();
+  });
+
+  new IntersectionObserver(
+    (entries) => {
+      const entry = entries.at(-1);
+      atHistory = entry.isIntersecting;
+      label.textContent = atHistory ? 'History' : 'Repertoire';
+      gotoBtn.textContent = atHistory ? 'Repertoire' : 'History';
+    },
+    { threshold: 0.5 },
+  ).observe(historySection);
 }
 
 function currentFen() {

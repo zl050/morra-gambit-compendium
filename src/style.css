@@ -242,6 +242,105 @@ select {
   gap: 14px;
 }
 
+.fold-nav {
+  position: relative;
+  margin-right: 12px;
+}
+
+.fold-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--mainline);
+  color: var(--bg);
+  font-size: 0.95rem;
+}
+
+.fold-nav-btn:hover,
+.fold-nav-btn:focus-visible {
+  background: color-mix(in srgb, var(--mainline) 86%, #fff);
+}
+
+#fold-nav-label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#fold-nav-label::after {
+  content: 'Repertoire';
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.fold-nav-sep {
+  width: 1px;
+  height: 1.15em;
+  background: color-mix(in srgb, var(--bg) 28%, transparent);
+}
+
+.fold-nav-chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.15s;
+}
+
+.fold-nav.is-open .fold-nav-chevron {
+  transform: rotate(180deg);
+}
+
+.fold-nav-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 3;
+  min-width: 100%;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s;
+}
+
+.fold-nav-menu::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.fold-nav.is-open .fold-nav-menu {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fold-nav-menu button {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--mainline);
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.fold-nav-menu button:hover,
+.fold-nav-menu button:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .source-link {
   display: flex;
   color: var(--muted);
