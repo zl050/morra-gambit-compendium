@@ -24,6 +24,11 @@
   --font-serif: 'Lora Variable', Lora, Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace;
   --tracking-label: 0.04em;
+  --banner-h: 70px;
+  /* Board resize baseline. The board renders at 1.1x this and can be dragged
+     to 0.75x-1.25x of it; app.js reads this value, so keep it the only source. */
+  --board-base: 720px;
+  --title-size: clamp(1.8rem, 1.4rem + 1.3vw, 2.4rem);
   font-family: var(--font-ui);
   font-synthesis: none;
   color: #2b2620;
@@ -74,6 +79,22 @@ body {
   background: var(--bg);
 }
 
+::-webkit-scrollbar,
+::-webkit-scrollbar-corner {
+  width: 0.5rem;
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background: var(--muted);
+}
+
 button,
 select {
   font: inherit;
@@ -91,12 +112,10 @@ button:disabled {
 #app {
   display: grid;
   grid-template-columns: 420px minmax(360px, 1fr) 420px;
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas:
-    'topbar topbar topbar'
-    'sidebar board tree';
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'sidebar board tree';
   gap: 18px;
-  height: 100vh;
+  height: calc(100dvh - var(--banner-h));
   padding: 18px;
   overflow: hidden;
 }
@@ -131,21 +150,9 @@ button:disabled {
   margin-bottom: 10px;
 }
 
-h1,
 h2,
 p {
   margin-top: 0;
-}
-
-h1 {
-  margin-bottom: 8px;
-  color: var(--mainline);
-  font-family: var(--font-serif);
-  font-size: clamp(1.4rem, 1.15rem + 1vw, 1.7rem);
-  font-weight: 700;
-  line-height: 1.14;
-  letter-spacing: normal;
-  text-wrap: balance;
 }
 
 h2 {
@@ -211,30 +218,6 @@ select {
 
 #description-text .desc-metadata + p {
   margin-top: 1.2em;
-}
-
-.topbar-source {
-  grid-column: 3;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
-}
-
-.source-link {
-  display: flex;
-  color: var(--muted);
-}
-
-.source-link:hover,
-.source-link:focus-visible {
-  color: var(--link-hover);
-}
-
-.source-icon {
-  flex: none;
-  width: 22.5px;
-  height: 22.5px;
 }
 
 .tool-list {
@@ -361,7 +344,6 @@ select {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .quiz-alt-btn:active {
@@ -419,7 +401,7 @@ select {
 .board-frame {
   position: relative;
   width: min(80vh, 100%);
-  max-width: 792px;
+  max-width: calc(var(--board-base) * 1.1);
   aspect-ratio: 1;
 }
 
@@ -663,8 +645,8 @@ body.resizing .board-resize {
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  width: 29px;
-  height: 29px;
+  width: 27px;
+  height: 27px;
   padding: 0;
   border: none;
   border-radius: 6px;
@@ -673,18 +655,16 @@ body.resizing .board-resize {
 }
 
 .engine-icon-btn svg {
-  width: 19px;
-  height: 19px;
+  width: 17px;
+  height: 17px;
 }
 
-.engine-icon-btn:hover,
-.engine-icon-btn:focus-visible {
+.engine-info:hover .engine-icon-btn {
   background: var(--hover-bg);
   color: var(--accent);
 }
 
 .engine-info {
-  position: relative;
   display: contents;
 }
 
@@ -822,25 +802,149 @@ body.resizing .board-resize {
 }
 
 .topbar {
-  grid-area: topbar;
-  display: grid;
-  grid-template-columns: 420px minmax(360px, 1fr) 420px;
+  display: flex;
   align-items: center;
-  gap: 18px;
-  margin: -18px -18px 0;
-  padding: 14px 24px;
-  background: var(--bg);
+  height: var(--banner-h);
+  padding: 0 24px;
 }
 
-.topbar h1 {
-  margin-bottom: 2px;
-  font-size: clamp(1.8rem, 1.5rem + 1.4vw, 2.5rem);
+.site-title {
+  margin: 0 0 2px;
+  color: var(--mainline);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: var(--title-size);
+  line-height: 1.14;
   white-space: nowrap;
 }
 
-.site-header {
-  grid-column: 1;
-  min-width: 0;
+.corner-nav {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: var(--banner-h);
+  padding: 0 24px;
+}
+
+.fold-nav {
+  position: relative;
+  margin-right: 12px;
+}
+
+.fold-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--mainline);
+  color: var(--bg);
+  font-size: 0.95rem;
+}
+
+.fold-nav-btn:hover,
+.fold-nav-btn:focus-visible {
+  background: color-mix(in srgb, var(--mainline) 86%, #fff);
+}
+
+#fold-nav-label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Reserve the wider label's width so the button doesn't resize on swap. */
+#fold-nav-label::after {
+  content: 'Repertoire';
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.fold-nav-sep {
+  width: 1px;
+  height: 1.15em;
+  background: color-mix(in srgb, var(--bg) 28%, transparent);
+}
+
+.fold-nav-chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.15s;
+}
+
+.fold-nav.is-open .fold-nav-chevron {
+  transform: rotate(180deg);
+}
+
+.fold-nav-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 3;
+  min-width: 100%;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s;
+}
+
+/* Hover bridge across the gap between button and menu. */
+.fold-nav-menu::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.fold-nav.is-open .fold-nav-menu {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fold-nav-menu button {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--mainline);
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.fold-nav-menu button:hover,
+.fold-nav-menu button:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.source-link {
+  display: flex;
+  color: var(--muted);
+}
+
+.source-link:hover,
+.source-link:focus-visible {
+  color: var(--link-hover);
+}
+
+.source-icon {
+  flex: none;
+  width: 22.5px;
+  height: 22.5px;
 }
 
 .tree-panel[hidden] {
@@ -1068,9 +1172,8 @@ body.resizing .board-resize {
 @media (max-width: 1160px) {
   #app {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto;
     grid-template-areas:
-      'topbar'
       'sidebar'
       'board'
       'tree';
@@ -1090,18 +1193,6 @@ body.resizing .board-resize {
 
   .description-panel {
     align-self: auto;
-  }
-
-  .topbar {
-    grid-template-columns: 1fr auto;
-  }
-
-  .site-header {
-    grid-column: 1;
-  }
-
-  .topbar-source {
-    grid-column: 2;
   }
 
   .tree-panel {

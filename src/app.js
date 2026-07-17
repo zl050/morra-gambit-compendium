@@ -5,6 +5,7 @@ import './style.css';
 import './board-theme.css';
 import './pieces-merida.css';
 import { initSounds, playMove } from './sound.js';
+import { setupHistory } from './history.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const GENERAL_DESCRIPTION =
@@ -68,9 +69,8 @@ const state = {
   fenIndex: new Map(),
   quizActive: false,
   engineEnabled: false,
-  // Static cloud evals (data/cloud-evals.json), keyed by node FEN.
+  atHistory: false,
   cloudEvals: new Map(),
-  // Counters for the current quiz session's summary, reset in startQuiz().
   quizCorrectCount: 0,
   quizRetryCount: 0,
   // Counter for unique ids of user-created (free-play) nodes.
@@ -123,7 +123,12 @@ function setupBoardResize() {
   const handle = document.querySelector('#board-resize');
   if (!frame || !handle) return;
 
-  // 22px handle offset to overhang the corner by 9px, like lichess's -9px.
+  const boardBase = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--board-base'),
+  );
+  if (!boardBase) return;
+
+  // 22px handle offset to overhang the corner by 9px
   const positionHandle = () => {
     const container = els.board.querySelector('cg-container');
     if (!container) return;
@@ -136,7 +141,6 @@ function setupBoardResize() {
   };
 
   let drag = null;
-  let initialBoardSize = null;
   let pendingSize = null;
   let rafId = 0;
 
@@ -153,9 +157,6 @@ function setupBoardResize() {
 
   handle.addEventListener('pointerdown', (event) => {
     event.preventDefault();
-    if (initialBoardSize === null) {
-      initialBoardSize = frame.getBoundingClientRect().width;
-    }
     drag = {
       startX: event.clientX,
       startY: event.clientY,
@@ -170,14 +171,13 @@ function setupBoardResize() {
     const shell = frame.parentElement;
     const styles = getComputedStyle(shell.parentElement);
     const multiColumn = styles.gridTemplateColumns.split(' ').length > 1;
-    const gap = parseFloat(styles.columnGap) || 0;
     // Largest size that still fits the layout cleanly.
     const layoutMax = multiColumn
-      ? Math.min(shell.clientHeight, shell.clientWidth + 2 * gap)
+      ? Math.min(shell.clientHeight, shell.clientWidth)
       : shell.clientWidth;
-    // Keep the zoom modest and relative to the board's initial size: 0.75x-1.25x.
-    // The displayed initial size is 1.1x the original baseline.
-    const baseSize = initialBoardSize / 1.1;
+    // Re-anchor to the space available right now, so the range stays sane after
+    // a window resize instead of trailing the size the board first had.
+    const baseSize = Math.min(boardBase, layoutMax);
     const minSize = baseSize * 0.75;
     const maxSize = Math.min(baseSize * 1.25, layoutMax);
     const delta = Math.max(event.clientX - drag.startX, event.clientY - drag.startY);
@@ -365,6 +365,8 @@ async function init() {
   els.copyPgn.addEventListener('click', copyExportPgn);
   els.engineToggle.addEventListener('click', toggleEnginePanel);
   setupEngineInfoTip();
+  setupFoldNav();
+  const historyNav = setupHistory();
   els.enginePvs.addEventListener('click', (event) => {
     if (state.quizActive) return;
     const button = event.target.closest('.engine-pv-move');
@@ -399,6 +401,18 @@ async function init() {
     },
     { passive: false },
   );
+  for (const panel of [document.querySelector('.sidebar'), els.tree]) {
+    panel.addEventListener(
+      'wheel',
+      (event) => {
+        if (panel.scrollHeight <= panel.clientHeight) return;
+        const atTop = panel.scrollTop <= 0;
+        const atBottom = Math.ceil(panel.scrollTop + panel.clientHeight) >= panel.scrollHeight;
+        if ((event.deltaY < 0 && atTop) || (event.deltaY > 0 && atBottom)) event.preventDefault();
+      },
+      { passive: false },
+    );
+  }
   window.addEventListener('keydown', (event) => {
     if (state.quizActive) {
       if (event.key === 'Escape') endQuiz();
@@ -406,6 +420,11 @@ async function init() {
     }
     if (event.target instanceof Element && event.target.closest('input, textarea, select')) return;
     if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (state.atHistory) {
+      if (event.key === 'ArrowDown') { event.preventDefault(); historyNav.next(); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); historyNav.prev(); }
+      return;
+    }
     const handler = SHORTCUTS[event.key.length === 1 ? event.key.toLowerCase() : event.key];
     if (handler) {
       event.preventDefault();
@@ -800,35 +819,70 @@ function toggleEnginePanel() {
   }
 }
 
-// `hovering`/`pinned` gate the tip in JS, not CSS :hover, so a click can
-// toggle it regardless of hover state. Touch has no hover, so `pinned` is
-// its only path (pointerType filters mouse-only events).
 function setupEngineInfoTip() {
   const info = els.engineInfoBtn.closest('.engine-info');
-  let hovering = false;
-  let pinned = false;
-  const sync = () => info.classList.toggle('is-open', hovering || pinned);
-
   info.addEventListener('pointerenter', (event) => {
     if (event.pointerType !== 'mouse') return;
-    hovering = true;
-    sync();
+    info.classList.add('is-open');
   });
   info.addEventListener('pointerleave', (event) => {
     if (event.pointerType !== 'mouse') return;
-    hovering = false;
+    info.classList.remove('is-open');
+  });
+}
+
+function setupFoldNav() {
+  const nav = document.querySelector('.fold-nav');
+  const btn = document.querySelector('#fold-nav-btn');
+  const label = document.querySelector('#fold-nav-label');
+  const gotoBtn = document.querySelector('#fold-nav-goto');
+  const historySection = document.querySelector('#history');
+  let open = false;
+  const sync = () => {
+    nav.classList.toggle('is-open', open);
+    btn.setAttribute('aria-expanded', String(open));
+  };
+
+  nav.addEventListener('pointerenter', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    open = true;
     sync();
   });
-  els.engineInfoBtn.addEventListener('click', () => {
-    pinned = !pinned;
-    if (!pinned) hovering = false;
+  nav.addEventListener('pointerleave', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    open = false;
+    sync();
+  });
+  btn.addEventListener('click', () => {
+    open = true;
     sync();
   });
   document.addEventListener('pointerdown', (event) => {
-    if (!pinned || info.contains(event.target)) return;
-    pinned = false;
+    if (!open || nav.contains(event.target)) return;
+    open = false;
     sync();
   });
+
+  gotoBtn.addEventListener('click', () => {
+    if (state.atHistory) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      historySection.scrollIntoView({ behavior: 'smooth' });
+    }
+    open = false;
+    sync();
+  });
+
+  new IntersectionObserver(
+    (entries) => {
+      const next = entries.at(-1).isIntersecting;
+      if (next === state.atHistory) return;
+      state.atHistory = next;
+      label.textContent = next ? 'History' : 'Repertoire';
+      gotoBtn.textContent = next ? 'Repertoire' : 'History';
+    },
+    { rootMargin: '-50% 0px -50% 0px', threshold: 0 },
+  ).observe(historySection);
 }
 
 function currentFen() {
