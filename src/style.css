@@ -25,6 +25,7 @@
   --font-mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace;
   --tracking-label: 0.04em;
   --banner-h: 70px;
+  --title-size: clamp(1.8rem, 1.4rem + 1.3vw, 2.4rem);
   font-family: var(--font-ui);
   font-synthesis: none;
   color: #2b2620;
@@ -116,12 +117,6 @@ button:disabled {
   overflow: hidden;
 }
 
-#history {
-  height: calc(100dvh - var(--banner-h));
-  overflow: hidden;
-  scroll-margin-top: var(--banner-h);
-}
-
 .sidebar,
 .tree-box {
   border: 1px solid var(--border);
@@ -152,21 +147,9 @@ button:disabled {
   margin-bottom: 10px;
 }
 
-h1,
 h2,
 p {
   margin-top: 0;
-}
-
-h1 {
-  margin-bottom: 8px;
-  color: var(--mainline);
-  font-family: var(--font-serif);
-  font-size: clamp(1.4rem, 1.15rem + 1vw, 1.7rem);
-  font-weight: 700;
-  line-height: 1.14;
-  letter-spacing: normal;
-  text-wrap: balance;
 }
 
 h2 {
@@ -232,129 +215,6 @@ select {
 
 #description-text .desc-metadata + p {
   margin-top: 1.2em;
-}
-
-.topbar-source {
-  grid-column: 3;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
-}
-
-.fold-nav {
-  position: relative;
-  margin-right: 12px;
-}
-
-.fold-nav-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px 9px 16px;
-  border: none;
-  border-radius: 8px;
-  background: var(--mainline);
-  color: var(--bg);
-  font-size: 0.95rem;
-}
-
-.fold-nav-btn:hover,
-.fold-nav-btn:focus-visible {
-  background: color-mix(in srgb, var(--mainline) 86%, #fff);
-}
-
-#fold-nav-label {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-#fold-nav-label::after {
-  content: 'Repertoire';
-  height: 0;
-  overflow: hidden;
-  visibility: hidden;
-}
-
-.fold-nav-sep {
-  width: 1px;
-  height: 1.15em;
-  background: color-mix(in srgb, var(--bg) 28%, transparent);
-}
-
-.fold-nav-chevron {
-  width: 14px;
-  height: 14px;
-  transition: transform 0.15s;
-}
-
-.fold-nav.is-open .fold-nav-chevron {
-  transform: rotate(180deg);
-}
-
-.fold-nav-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 3;
-  min-width: 100%;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  visibility: hidden;
-  opacity: 0;
-  transform: translateY(-4px);
-  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s;
-}
-
-.fold-nav-menu::before {
-  content: '';
-  position: absolute;
-  top: -8px;
-  left: 0;
-  right: 0;
-  height: 8px;
-}
-
-.fold-nav.is-open .fold-nav-menu {
-  visibility: visible;
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.fold-nav-menu button {
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--mainline);
-  font-size: 0.95rem;
-  text-align: left;
-}
-
-.fold-nav-menu button:hover,
-.fold-nav-menu button:focus-visible {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.source-link {
-  display: flex;
-  color: var(--muted);
-}
-
-.source-link:hover,
-.source-link:focus-visible {
-  color: var(--link-hover);
-}
-
-.source-icon {
-  flex: none;
-  width: 22.5px;
-  height: 22.5px;
 }
 
 .tool-list {
@@ -796,8 +656,7 @@ body.resizing .board-resize {
   height: 17px;
 }
 
-.engine-icon-btn:hover,
-.engine-icon-btn:focus-visible {
+.engine-info:hover .engine-icon-btn {
   background: var(--hover-bg);
   color: var(--accent);
 }
@@ -940,78 +799,149 @@ body.resizing .board-resize {
 }
 
 .topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: grid;
-  grid-template-columns: 420px minmax(360px, 1fr) 420px;
+  display: flex;
   align-items: center;
-  gap: 18px;
   height: var(--banner-h);
   padding: 0 24px;
-  background: var(--bg);
 }
 
-.topbar h1 {
-  margin-bottom: 2px;
-  font-size: clamp(1.75rem, 1.5rem + 1.3vw, 2.4rem);
+.site-title {
+  margin: 0 0 2px;
+  color: var(--mainline);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: var(--title-size);
+  line-height: 1.14;
   white-space: nowrap;
 }
 
-.site-header {
-  grid-column: 1;
-  min-width: 0;
+.corner-nav {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: var(--banner-h);
+  padding: 0 24px;
 }
 
-/* Animated title: shared "Morra Gambit" base + a suffix */
-.title-slot {
+.fold-nav {
   position: relative;
-  display: inline-block;
-  white-space: pre;
+  margin-right: 12px;
 }
 
-.title-sizer {
+.fold-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--mainline);
+  color: var(--bg);
+  font-size: 0.95rem;
+}
+
+.fold-nav-btn:hover,
+.fold-nav-btn:focus-visible {
+  background: color-mix(in srgb, var(--mainline) 86%, #fff);
+}
+
+#fold-nav-label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Reserve the wider label's width so the button doesn't resize on swap. */
+#fold-nav-label::after {
+  content: 'Repertoire';
+  height: 0;
+  overflow: hidden;
   visibility: hidden;
 }
 
-.title-suffix {
+.fold-nav-sep {
+  width: 1px;
+  height: 1.15em;
+  background: color-mix(in srgb, var(--bg) 28%, transparent);
+}
+
+.fold-nav-chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.15s;
+}
+
+.fold-nav.is-open .fold-nav-chevron {
+  transform: rotate(180deg);
+}
+
+.fold-nav-menu {
   position: absolute;
-  top: 0;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 3;
+  min-width: 100%;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s;
+}
+
+/* Hover bridge across the gap between button and menu. */
+.fold-nav-menu::before {
+  content: '';
+  position: absolute;
+  top: -8px;
   left: 0;
-  padding-bottom: 0.25em;
-  white-space: pre;
+  right: 0;
+  height: 8px;
 }
 
-.suffix-rep {
-  clip-path: inset(0 0 0 0);
+.fold-nav.is-open .fold-nav-menu {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.suffix-hist {
-  clip-path: inset(0 100% 0 0);
+.fold-nav-menu button {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--mainline);
+  font-size: 0.95rem;
+  text-align: left;
 }
 
-.site-title.is-history .suffix-rep {
-  clip-path: inset(0 0 0 100%);
-}
-.site-title.is-history .suffix-hist {
-  animation: title-wipe-in var(--title-wipe, 1s) cubic-bezier(0.65, 0, 0.35, 1) forwards;
-}
-.site-title.is-repertoire .suffix-hist {
-  clip-path: inset(0 0 0 100%);
-}
-.site-title.is-repertoire .suffix-rep {
-  animation: title-wipe-in var(--title-wipe, 1s) cubic-bezier(0.65, 0, 0.35, 1) forwards;
+.fold-nav-menu button:hover,
+.fold-nav-menu button:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
-@keyframes title-wipe-in {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
+.source-link {
+  display: flex;
+  color: var(--muted);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .title-suffix {
-    animation-duration: 1ms !important;
-  }
+.source-link:hover,
+.source-link:focus-visible {
+  color: var(--link-hover);
+}
+
+.source-icon {
+  flex: none;
+  width: 22.5px;
+  height: 22.5px;
 }
 
 .tree-panel[hidden] {
@@ -1260,18 +1190,6 @@ body.resizing .board-resize {
 
   .description-panel {
     align-self: auto;
-  }
-
-  .topbar {
-    grid-template-columns: 1fr auto;
-  }
-
-  .site-header {
-    grid-column: 1;
-  }
-
-  .topbar-source {
-    grid-column: 2;
   }
 
   .tree-panel {

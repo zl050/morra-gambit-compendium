@@ -1,0 +1,172 @@
+/* History fold: masthead + TOC on the left, vertical slide stage on the right. */
+
+#history {
+  display: grid;
+  grid-template-columns: 470px minmax(0, 1fr);
+  gap: 24px;
+  height: 100dvh;
+  padding: 0 24px 24px;
+  overflow: hidden;
+}
+
+.hist-aside {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hist-title {
+  margin: 55px 0 30px;
+  color: var(--mainline);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: var(--title-size);
+  line-height: 1.14;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.hist-title-em {
+  font-style: italic;
+  font-size: 1.07em;
+}
+
+.hist-contents {
+  margin-top: 35px;
+}
+
+.hist-toc-label {
+  width: 7em;
+  margin: 0 0 12px 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hist-toc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hist-toc-item {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 14px;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  text-align: left;
+  opacity: 0.75;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.hist-toc-item:hover,
+.hist-toc-item:focus-visible {
+  background: var(--hover-bg);
+  color: var(--mainline);
+  opacity: 1;
+}
+
+.hist-toc-numeral {
+  flex: none;
+  width: 1.6em;
+}
+
+.hist-toc-item.is-active {
+  border-left-color: var(--accent);
+  color: var(--mainline);
+  opacity: 1;
+}
+
+.hist-toc-item.is-active .hist-toc-numeral {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.hist-toc-item.is-active .hist-toc-title {
+  font-weight: 700;
+}
+
+.hist-stage {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.hist-track {
+  height: 100%;
+  transform: translateY(calc(var(--slide, 0) * -100%));
+  transition:
+    transform 0.7s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.45s ease;
+  opacity: 0;
+}
+
+.hist-stage.has-selection .hist-track {
+  opacity: 1;
+}
+
+.hist-track.no-anim {
+  transition: none;
+}
+
+.hist-scene {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.hist-scene.is-scrollable {
+  overscroll-behavior: contain;
+}
+
+/* Placeholder scene bodies until each era gets its real layout. */
+.hist-placeholder {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  height: 100%;
+  color: var(--muted);
+  font-family: var(--font-serif);
+  text-align: center;
+}
+
+.hist-ph-numeral {
+  color: var(--border-strong);
+  font-size: 3.4rem;
+  line-height: 1;
+}
+
+.hist-ph-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.hist-ph-range {
+  margin: 0;
+  font-size: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hist-track {
+    transition-duration: 1ms !important;
+  }
+}
+
+@media (max-width: 1160px) {
+  #history {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+}

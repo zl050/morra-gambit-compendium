@@ -5,6 +5,7 @@ import './style.css';
 import './board-theme.css';
 import './pieces-merida.css';
 import { initSounds, playMove } from './sound.js';
+import { setupHistory } from './history.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const GENERAL_DESCRIPTION =
@@ -68,9 +69,8 @@ const state = {
   fenIndex: new Map(),
   quizActive: false,
   engineEnabled: false,
-  // Static cloud evals (data/cloud-evals.json), keyed by node FEN.
+  atHistory: false,
   cloudEvals: new Map(),
-  // Counters for the current quiz session's summary, reset in startQuiz().
   quizCorrectCount: 0,
   quizRetryCount: 0,
   // Counter for unique ids of user-created (free-play) nodes.
@@ -366,6 +366,7 @@ async function init() {
   els.engineToggle.addEventListener('click', toggleEnginePanel);
   setupEngineInfoTip();
   setupFoldNav();
+  const historyNav = setupHistory();
   els.enginePvs.addEventListener('click', (event) => {
     if (state.quizActive) return;
     const button = event.target.closest('.engine-pv-move');
@@ -401,7 +402,7 @@ async function init() {
     { passive: false },
   );
   for (const panel of [document.querySelector('.sidebar'), els.tree]) {
-    panel?.addEventListener(
+    panel.addEventListener(
       'wheel',
       (event) => {
         if (panel.scrollHeight <= panel.clientHeight) return;
@@ -419,6 +420,11 @@ async function init() {
     }
     if (event.target instanceof Element && event.target.closest('input, textarea, select')) return;
     if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (state.atHistory) {
+      if (event.key === 'ArrowDown') { event.preventDefault(); historyNav.next(); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); historyNav.prev(); }
+      return;
+    }
     const handler = SHORTCUTS[event.key.length === 1 ? event.key.toLowerCase() : event.key];
     if (handler) {
       event.preventDefault();
@@ -831,12 +837,7 @@ function setupFoldNav() {
   const label = document.querySelector('#fold-nav-label');
   const gotoBtn = document.querySelector('#fold-nav-goto');
   const historySection = document.querySelector('#history');
-  const title = document.querySelector('.site-title');
-  const suffixRep = title.querySelector('.suffix-rep');
-  const suffixHist = title.querySelector('.suffix-hist');
   let open = false;
-  let atHistory = false;
-  let ready = false;
   const sync = () => {
     nav.classList.toggle('is-open', open);
     btn.setAttribute('aria-expanded', String(open));
@@ -863,7 +864,7 @@ function setupFoldNav() {
   });
 
   gotoBtn.addEventListener('click', () => {
-    if (atHistory) {
+    if (state.atHistory) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       historySection.scrollIntoView({ behavior: 'smooth' });
@@ -874,25 +875,13 @@ function setupFoldNav() {
 
   new IntersectionObserver(
     (entries) => {
-      const entry = entries.at(-1);
-      const ratio = entry.intersectionRatio;
-      let next = atHistory;
-      if (ratio >= 0.7) next = true;
-      else if (ratio <= 0.3) next = false;
-      if (ready && next === atHistory) return;
-      const first = !ready;
-      ready = true;
-      atHistory = next;
-      label.textContent = atHistory ? 'History' : 'Repertoire';
-      gotoBtn.textContent = atHistory ? 'Repertoire' : 'History';
-      suffixRep.setAttribute('aria-hidden', String(atHistory));
-      suffixHist.setAttribute('aria-hidden', String(!atHistory));
-      if (!first) {
-        title.classList.toggle('is-history', atHistory);
-        title.classList.toggle('is-repertoire', !atHistory);
-      }
+      const next = entries.at(-1).isIntersecting;
+      if (next === state.atHistory) return;
+      state.atHistory = next;
+      label.textContent = next ? 'History' : 'Repertoire';
+      gotoBtn.textContent = next ? 'Repertoire' : 'History';
     },
-    { threshold: [0.3, 0.7] },
+    { rootMargin: '-50% 0px -50% 0px', threshold: 0 },
   ).observe(historySection);
 }
 
