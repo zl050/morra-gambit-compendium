@@ -123,7 +123,12 @@ function setupBoardResize() {
   const handle = document.querySelector('#board-resize');
   if (!frame || !handle) return;
 
-  // 22px handle offset to overhang the corner by 9px, like lichess's -9px.
+  const boardBase = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--board-base'),
+  );
+  if (!boardBase) return;
+
+  // 22px handle offset to overhang the corner by 9px
   const positionHandle = () => {
     const container = els.board.querySelector('cg-container');
     if (!container) return;
@@ -136,7 +141,6 @@ function setupBoardResize() {
   };
 
   let drag = null;
-  let initialBoardSize = null;
   let pendingSize = null;
   let rafId = 0;
 
@@ -153,9 +157,6 @@ function setupBoardResize() {
 
   handle.addEventListener('pointerdown', (event) => {
     event.preventDefault();
-    if (initialBoardSize === null) {
-      initialBoardSize = frame.getBoundingClientRect().width;
-    }
     drag = {
       startX: event.clientX,
       startY: event.clientY,
@@ -170,14 +171,13 @@ function setupBoardResize() {
     const shell = frame.parentElement;
     const styles = getComputedStyle(shell.parentElement);
     const multiColumn = styles.gridTemplateColumns.split(' ').length > 1;
-    const gap = parseFloat(styles.columnGap) || 0;
     // Largest size that still fits the layout cleanly.
     const layoutMax = multiColumn
-      ? Math.min(shell.clientHeight, shell.clientWidth + 2 * gap)
+      ? Math.min(shell.clientHeight, shell.clientWidth)
       : shell.clientWidth;
-    // Keep the zoom modest and relative to the board's initial size: 0.75x-1.25x.
-    // The displayed initial size is 1.1x the original baseline.
-    const baseSize = initialBoardSize / 1.1;
+    // Re-anchor to the space available right now, so the range stays sane after
+    // a window resize instead of trailing the size the board first had.
+    const baseSize = Math.min(boardBase, layoutMax);
     const minSize = baseSize * 0.75;
     const maxSize = Math.min(baseSize * 1.25, layoutMax);
     const delta = Math.max(event.clientX - drag.startX, event.clientY - drag.startY);

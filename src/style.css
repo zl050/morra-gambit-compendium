@@ -25,6 +25,9 @@
   --font-mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace;
   --tracking-label: 0.04em;
   --banner-h: 70px;
+  /* Board resize baseline. The board renders at 1.1x this and can be dragged
+     to 0.75x-1.25x of it; app.js reads this value, so keep it the only source. */
+  --board-base: 720px;
   --title-size: clamp(1.8rem, 1.4rem + 1.3vw, 2.4rem);
   font-family: var(--font-ui);
   font-synthesis: none;
@@ -398,7 +401,7 @@ select {
 .board-frame {
   position: relative;
   width: min(80vh, 100%);
-  max-width: 792px;
+  max-width: calc(var(--board-base) * 1.1);
   aspect-ratio: 1;
 }
 

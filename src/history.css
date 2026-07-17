@@ -97,6 +97,21 @@
   font-weight: 700;
 }
 
+.hist-wip {
+  width: fit-content;
+  margin: 16px 0 0 16px;
+  padding: 8px 12px;
+  border: 1px solid #e0a96d;
+  border-radius: 6px;
+  background: #fff4e5;
+  color: #9a5b00;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .hist-stage {
   position: relative;
   min-width: 0;
