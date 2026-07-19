@@ -381,6 +381,7 @@ async function init() {
     selectNode(node.id);
   });
   els.enginePvs.addEventListener('mouseover', (event) => {
+    if (!matchMedia('(hover: hover)').matches) return;
     const button = event.target.closest('.engine-pv-move');
     if (button) showPvPreview(button);
   });
