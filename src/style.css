@@ -111,7 +111,7 @@ button:disabled {
 
 #app {
   display: grid;
-  grid-template-columns: 420px minmax(360px, 1fr) 420px;
+  grid-template-columns: minmax(300px, 420px) minmax(360px, 1fr) minmax(300px, 420px);
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: 'sidebar board tree';
   gap: 18px;
@@ -1001,12 +1001,6 @@ body.resizing .board-resize {
   font-size: 1.05rem;
 }
 
-.notation-empty {
-  grid-column: 1 / -1;
-  padding: 18px;
-  color: var(--muted);
-}
-
 .notation-result {
   grid-column: 1 / -1;
   display: grid;
@@ -1169,7 +1163,7 @@ body.resizing .board-resize {
   color: var(--accent);
 }
 
-@media (max-width: 1160px) {
+@media (max-width: 1060px) {
   #app {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto auto;

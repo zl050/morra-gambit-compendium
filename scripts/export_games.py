@@ -25,7 +25,6 @@ PGN_DIR = ROOT / "data" / "games"
 OUTPUT_PATH = ROOT / "data" / "games.json"
 REQUIRED_HEADERS = ("White", "Black", "Result", "Date")
 VALID_RESULTS = {"1-0", "0-1", "1/2-1/2"}
-COMMENT_LIMIT = 320
 
 GAME_FILENAME_RE = re.compile(r"g(\d+)\.pgn")
 
@@ -71,8 +70,7 @@ def export_game(pgn_path: Path) -> dict:
                 "isMainline": True,
             }
         ],
-        entry=[root_id],  
-        comment_limit=COMMENT_LIMIT,
+        entry=[root_id],
     )
 
     ec.walk_variations(game, root_board, root_id, context, parent_is_mainline=True)

@@ -33,7 +33,6 @@ except ImportError as exc:
 PGN_DIR = ROOT / "data" / "chapters"
 OUTPUT_PATH = ROOT / "data" / "chapters.json"
 REQUIRED_HEADERS = ("Black",)
-COMMENT_LIMIT = 320
 
 # Standard PGN move-quality suffix annotations (Numeric Annotation Glyphs).
 # python-chess parses "?!" etc. out of the move text into node.nags rather
@@ -60,7 +59,6 @@ class ExportContext:
     chapter_id: str
     nodes: list[dict]
     entry: list
-    comment_limit: int = COMMENT_LIMIT
 
 
 def main() -> int:
@@ -176,7 +174,7 @@ def walk_variations(parent_node, board, parent_id: str, context: ExportContext, 
             if has_entry:
                 context.entry[0] = child_id
 
-        comment = normalize_comment(raw_comment, context.comment_limit)
+        comment = normalize_comment(raw_comment)
         if comment:
             payload["description"] = comment
 
@@ -221,13 +219,8 @@ def chapter_description(pgn_path: Path, root_comment: str) -> str:
     return comment
 
 
-def normalize_comment(comment: str, limit: int = COMMENT_LIMIT) -> str:
-    text = " ".join(comment.split())
-    if not text:
-        return ""
-    if len(text) > limit:
-        raise ValueError(f"PGN comment too long ({len(text)} > {limit}): {text!r}")
-    return text
+def normalize_comment(comment: str) -> str:
+    return " ".join(comment.split())
 
 
 def node_by_id(nodes: list[dict], node_id: str) -> dict:

@@ -73,6 +73,8 @@ const state = {
   cloudEvals: new Map(),
   quizCorrectCount: 0,
   quizRetryCount: 0,
+  // Bumped on each quiz start so pending quiz timers die across exit+restart.
+  quizSession: 0,
   // Counter for unique ids of user-created (free-play) nodes.
   nodeSeq: 0,
 };
@@ -318,7 +320,6 @@ async function init() {
     renderChapterOptions();
     restoreFromHash();
     if (!state.chapter) {
-      document.documentElement.classList.add('is-home');
       applyFreePlay(START_FEN);
       updateNavigationState();
     }
@@ -461,7 +462,6 @@ function selectChapter(chapterId, preferredNodeId = null, updateHash = true) {
   if (!chapter) return;
 
   state.chapter = chapter;
-  document.documentElement.classList.remove('is-home');
   clearQuizStatus();
   clearSearchStatus();
   els.quizMode.disabled = chapter.kind === 'game' && chapter.result === '0-1';
@@ -799,9 +799,6 @@ function toggleToolRow(row, button) {
 
 // ---- Engine panel ----
 //
-// Evals come from lichess cloud-eval database (no local engine); 
-// The toggle here is a lookup by exact node FEN.
-//
 // cp/mate are from White's point of view — lila normalizes Stockfish's
 // side-to-move scores before storing them (lila ui/lib/src/ceval/protocol.ts).
 
@@ -827,6 +824,14 @@ function setupEngineInfoTip() {
   });
   info.addEventListener('pointerleave', (event) => {
     if (event.pointerType !== 'mouse') return;
+    info.classList.remove('is-open');
+  });
+  info.addEventListener('pointerup', (event) => {
+    if (event.pointerType === 'mouse') return;
+    info.classList.toggle('is-open');
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!info.classList.contains('is-open') || info.contains(event.target)) return;
     info.classList.remove('is-open');
   });
 }
@@ -1133,10 +1138,21 @@ function isWrongAnswer(node) {
   return suffix === '?' || suffix === '?!';
 }
 
-function acceptableWhiteChildren(node) {
+// Quiz paths only ever see authored nodes — free-play (isUser) nodes are
+// neither accepted as answers nor offered as replies/alternatives.
+function authoredChildren(node) {
   return node.children
     .map((id) => state.nodesById.get(id))
-    .filter((child) => !isWrongAnswer(child));
+    .filter((child) => !child.isUser);
+}
+
+function authoredMainChild(node) {
+  const children = authoredChildren(node);
+  return children.find((child) => child.isMainline) || children[0] || null;
+}
+
+function acceptableWhiteChildren(node) {
+  return authoredChildren(node).filter((child) => !isWrongAnswer(child));
 }
 
 function sanLabel(node) {
@@ -1156,7 +1172,7 @@ function startQuiz() {
   if (state.chapter.kind === 'game' && state.chapter.result === '0-1') return;
 
   const startNode = getSelectedNode();
-  if (startNode.children.length === 0) {
+  if (authoredChildren(startNode).length === 0) {
     setQuizStatus('This is the end of the line.', 'error');
     return;
   }
@@ -1166,8 +1182,8 @@ function startQuiz() {
   if (turnColorOf(startNode.fen) === 'black') {
     // Black's opening reply uses the mainline (same rule as auto-replies during
     // the quiz, see presentBlackReply), not a random pick.
-    const blackReply = mainlineChild(startNode);
-    if (!blackReply || blackReply.children.length === 0) {
+    const blackReply = authoredMainChild(startNode);
+    if (!blackReply || authoredChildren(blackReply).length === 0) {
       setQuizStatus('This is the end of the line.', 'error');
       return;
     }
@@ -1179,6 +1195,7 @@ function startQuiz() {
   if (!els.exportRow.hidden) toggleToolRow(els.exportRow, els.toggleExport);
 
   state.quizActive = true;
+  state.quizSession += 1;
   state.selectedNodeId = currentNode.id;
   state.quizCorrectCount = 0;
   state.quizRetryCount = 0;
@@ -1296,7 +1313,6 @@ function startScratchChapter() {
     isMainline: true,
   };
   state.chapter = { id: SCRATCH_ID, title: 'Free play', description: null, nodes: [root] };
-  document.documentElement.classList.add('is-home');
   state.nodesById = new Map([[root.id, root]]);
   state.selectedNodeId = root.id;
   state.nodeSeq = 0;
@@ -1380,7 +1396,7 @@ function onUserMove(orig, dest) {
 
   // Model games quiz on the moves as played; chapters accept any non-mistake line.
   const isGame = state.chapter.kind === 'game';
-  const acceptable = isGame ? [mainlineChild(before)].filter(Boolean) : acceptableWhiteChildren(before);
+  const acceptable = isGame ? [authoredMainChild(before)].filter(Boolean) : acceptableWhiteChildren(before);
   const playedKey = fenKey(chess.fen());
   const whiteNode = acceptable.find((child) => fenKey(child.fen) === playedKey);
 
@@ -1395,8 +1411,9 @@ function onUserMove(orig, dest) {
     const expected = isGame ? 'the move played in the game' : 'the repertoire move';
     setQuizStatus(`${result.san} is not ${expected}.`, 'error');
 
+    const session = state.quizSession;
     setTimeout(() => {
-      if (!state.quizActive) return;
+      if (!state.quizActive || state.quizSession !== session) return;
       restoreBoardTo(before.fen, getLastMove(before));
     }, 900);
     return;
@@ -1419,14 +1436,15 @@ function onUserMove(orig, dest) {
     : 'Correct!';
   setQuizStatus(whiteLine, 'success');
 
-  const blackNode = mainlineChild(whiteNode);
+  const blackNode = authoredMainChild(whiteNode);
   if (!blackNode) {
     endQuiz(quizSummaryMessage(), 'success');
     return;
   }
 
+  const session = state.quizSession;
   setTimeout(() => {
-    if (!state.quizActive) return;
+    if (!state.quizActive || state.quizSession !== session) return;
     presentBlackReply(whiteNode, blackNode, whiteLine);
   }, 700);
 }
@@ -1435,7 +1453,7 @@ function playQuizReply(node) {
   playMove(node.san);
   state.selectedNodeId = node.id;
 
-  const terminal = node.children.length === 0;
+  const terminal = authoredChildren(node).length === 0;
   ground.set({
     fen: node.fen,
     turnColor: turnColorOf(node.fen),
@@ -1453,9 +1471,7 @@ function presentBlackReply(whiteNode, blackNode, whiteLine) {
   // Game quiz follows the game as played: no sideline swaps for Black.
   const blackAlts = state.chapter.kind === 'game'
     ? []
-    : whiteNode.children
-        .map((id) => state.nodesById.get(id))
-        .filter((child) => child.id !== blackNode.id);
+    : authoredChildren(whiteNode).filter((child) => child.id !== blackNode.id);
 
   const parts = [`${whiteLine}\nBlack played ${sanLabelSentence(blackNode)}`];
   if (blackAlts.length) {
@@ -1479,9 +1495,7 @@ function presentBlackReply(whiteNode, blackNode, whiteLine) {
 function renderOpeningBlackStatus(startNode, blackNode) {
   const blackAlts = state.chapter.kind === 'game'
     ? []
-    : startNode.children
-        .map((id) => state.nodesById.get(id))
-        .filter((child) => child.id !== blackNode.id);
+    : authoredChildren(startNode).filter((child) => child.id !== blackNode.id);
 
   const parts = [`Black played ${sanLabelSentence(blackNode)} Find White's best move.`];
   if (blackAlts.length) {

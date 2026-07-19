@@ -54,8 +54,8 @@ def main() -> int:
         return 0
 
     engine = chess.engine.SimpleEngine.popen_uci(engine_path)
-    engine.configure({"Threads": args.threads, "Hash": args.hash_mb})
     try:
+        engine.configure({"Threads": args.threads, "Hash": args.hash_mb})
         for index, fen in enumerate(pending, start=1):
             evals[fen] = analyse(engine, fen, args.depth)
             print(f"[{index}/{len(pending)}] depth {args.depth}  {fen}", flush=True)
@@ -99,7 +99,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def save(evals: dict) -> None:
-    EVALS_PATH.write_text(json.dumps(evals, ensure_ascii=False) + "\n", encoding="utf-8")
+    # Write-then-replace so an interrupted run can't corrupt the store.
+    tmp = EVALS_PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(evals, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp.replace(EVALS_PATH)
 
 
 if __name__ == "__main__":

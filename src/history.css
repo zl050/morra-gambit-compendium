@@ -179,7 +179,7 @@
   }
 }
 
-@media (max-width: 1160px) {
+@media (max-width: 1060px) {
   #history {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);

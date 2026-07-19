@@ -140,7 +140,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def save(evals: dict) -> None:
-    OUTPUT_PATH.write_text(json.dumps(evals, ensure_ascii=False) + "\n", encoding="utf-8")
+    # Write-then-replace so an interrupted run can't corrupt the store.
+    tmp = OUTPUT_PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(evals, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp.replace(OUTPUT_PATH)
 
 
 if __name__ == "__main__":
