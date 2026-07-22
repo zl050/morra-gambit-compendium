@@ -4,9 +4,9 @@
 Mirrors export_chapters, but for standalone model games:
   - White/Black/Result/Date are real PGN headers (not repurposed).
   - The title is built from the player surnames and year.
-  - There is no "[%entry]" marker: games always start from move 1.
+  - No "[%entry]" marker: games always start from move 1.
   - The root comment holds the game's narrative description, and its line
-    breaks are preserved (rendered with white-space: pre-line).
+    breaks are preserved.
 """
 
 from __future__ import annotations

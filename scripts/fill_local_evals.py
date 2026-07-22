@@ -35,7 +35,7 @@ EVALS_PATH = ROOT / "data" / "cloud-evals.json"
 
 DEFAULT_ENGINE = r"C:\path\to\stockfish.exe"  # placeholder — pass --engine or edit
 MULTI_PV = 3
-DEFAULT_DEPTH = 25
+DEFAULT_DEPTH = 20
 SAVE_EVERY = 5
 
 

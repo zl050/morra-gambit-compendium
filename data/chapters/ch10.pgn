@@ -1,6 +1,6 @@
 [Black "Chapter 10 Finegold Defense"]
 
-{In this chapter, Black defers ...Nc6, retaining the option of ...Nbd7. The mainline continues 8... Be7 (the Finegold Defense), while 8... b5 leads to the Chicago Defense, typically followed by the ...Ra7 rook lift.}
+{In this chapter, Black defers ...Nc6, retaining the option of ...Nbd7. The main line continues 8... Be7 (the Finegold Defense), while 8... b5 leads to the Chicago Defense, typically followed by the ...Ra7 rook lift.}
 
-1. e4 c5 2. d4 cxd4 3. c3 dxc3 4. Nxc3 d6 5. Nf3 e6 6. Bc4 a6 7. O-O Nf6 8. Qe2 {[%entry]} Be7 (8... b5 9. Bb3 Ra7 10. e5 (10. Rd1?! Rd7) 10... dxe5 11. Nxe5) 9. Rd1 Nbd7 10. e5 dxe5 11. Nxe5 O-O 12. Bf4 *
+1. e4 c5 2. d4 cxd4 3. c3 dxc3 4. Nxc3 d6 5. Nf3 e6 6. Bc4 a6 7. O-O {[%entry]} Nf6 (7... Nc6 8. Qe2 Be7 9. Rd1 b5 10. Bb3 Ra7 11. Be3 Rd7 12. Na4! bxa4 13. Bxa4 Bb7 14. Rac1) 8. Qe2 Be7 (8... b5 9. Bb3 Ra7 10. e5 (10. Rd1?! Rd7) 10... dxe5 11. Nxe5) 9. Rd1 Nbd7 (9... b5 10. e5 bxc4 11. exf6 gxf6 (11... Bxf6 12. Bf4) 12. Nd2!) 10. e5 dxe5 11. Nxe5 O-O 12. Bf4 *
 
